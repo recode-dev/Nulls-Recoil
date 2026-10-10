@@ -766,18 +766,28 @@ static const rcl_kind_t rcl_kinds[RCL_KIND_COUNT] = {
 
 int rcl_kind_index(const char *name)
 {
+    static const char *last = nullptr;
+    static int lastIndex = -1;
     int i = 0;
     if (!name || !name[0])
     {
         return -1;
     }
+    if (name == last)
+    {
+        return lastIndex;
+    }
     for (i = 0; i < RCL_KIND_COUNT; i++)
     {
         if (strcmp(rcl_kinds[i].name, name) == 0)
         {
+            last = name;
+            lastIndex = i;
             return i;
         }
     }
+    last = name;
+    lastIndex = -1;
     return -1;
 }
 

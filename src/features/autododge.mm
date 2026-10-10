@@ -74,7 +74,10 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_TICK_MS 16.0f
 #define RCL_AD_TICK_MAX_MS 250.0f
 #define RCL_AD_MINE_SPAWN 220.0f
-#define RCL_BDC_TURN_MAX 0.60f
+#define RCL_AD_ARRIVE 48.0f
+#define RCL_AD_COMMIT_MS 220
+#define RCL_AD_HOLD_TAN 0.30f
+#define RCL_AD_SEND_MS 50
 #define RCL_BDC_SWITCH_MARGIN (RCL_BDC_GAP_W * 14.0f)
 #define RCL_BDC_GAIN_MIN 30.0f
 #define RCL_BDC_REFINE_STEP 0.5f
@@ -833,22 +836,55 @@ static void rcl_ad_clamp_target(float *tx, float *ty)
     *ty = rcl_ad_clamp_to_map(*ty, h);
 }
 
+static float rcl_ad_sent_x = 0.0f;
+static float rcl_ad_sent_y = 0.0f;
+static uint64_t rcl_ad_sent_ms = 0;
+static uint64_t rcl_ad_enq_ms = 0;
+static int rcl_ad_sent_on = 0;
+
 static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 {
     int32_t ex;
     int32_t ey;
+    uint64_t now;
+    int keep = 0;
 
-    if (!(tx == tx) || !(ty == ty))
+    if (!isfinite(tx) || !isfinite(ty))
     {
         return 0;
     }
-
     rcl_ad_clamp_target(&tx, &ty);
-    ex = (int32_t)tx;
-    ey = (int32_t)ty;
-
+    now = rcl_ad_now_ms();
+    if (rcl_ad_sent_on)
+    {
+        float hx = rcl_ad_sent_x - mx;
+        float hy = rcl_ad_sent_y - my;
+        float nx = tx - mx;
+        float ny = ty - my;
+        float dot = hx * nx + hy * ny;
+        float cross = hx * ny - hy * nx;
+        if (hx * hx + hy * hy > RCL_AD_ARRIVE * RCL_AD_ARRIVE &&
+            now - rcl_ad_sent_ms < RCL_AD_COMMIT_MS && dot > 0.0f &&
+            cross * cross < RCL_AD_HOLD_TAN * RCL_AD_HOLD_TAN * dot * dot)
+        {
+            keep = 1;
+        }
+    }
+    if (!keep)
+    {
+        rcl_ad_sent_x = tx;
+        rcl_ad_sent_y = ty;
+        rcl_ad_sent_ms = now;
+        rcl_ad_sent_on = 1;
+    }
+    ex = (int32_t)rcl_ad_sent_x;
+    ey = (int32_t)rcl_ad_sent_y;
     rcl_move_to(ex, ey, mx, my);
-
+    if (keep && now - rcl_ad_enq_ms < RCL_AD_SEND_MS)
+    {
+        return 0;
+    }
+    rcl_ad_enq_ms = now;
     return rcl_enqueue(ex, ey);
 }
 
@@ -883,38 +919,6 @@ static void rcl_ad_aim_target(float mx, float my, float dx, float dy, float *tx,
     }
     *tx = roundf(mx + dx * d);
     *ty = roundf(my + dy * d);
-}
-
-static void rcl_bdc_slew(float *fx, float *fy, float limit)
-{
-    float ca = 0.0f;
-    float da = 0.0f;
-    float na = 0.0f;
-    if (!rcl_bdc_have_last || (rcl_bdc_last_x == 0.0f && rcl_bdc_last_y == 0.0f))
-    {
-        return;
-    }
-    ca = atan2f(rcl_bdc_last_y, rcl_bdc_last_x);
-    da = atan2f(*fy, *fx);
-    na = da - ca;
-    while (na > RCL_PI)
-    {
-        na -= RCL_TAU;
-    }
-    while (na < -RCL_PI)
-    {
-        na += RCL_TAU;
-    }
-    if (na > limit)
-    {
-        na = limit;
-    }
-    if (na < -limit)
-    {
-        na = -limit;
-    }
-    *fx = cosf(ca + na);
-    *fy = sinf(ca + na);
 }
 
 static int rcl_bdc_aimed_one(const rcl_bd_threat_t *p, float mx, float my, float myR)
@@ -1176,12 +1180,11 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         return;
     }
     rcl_bd_refine(mx, my, myR, speed, bx, by, &fx, &fy);
-    if (!(fx == fx) || !(fy == fy) || (fx == 0.0f && fy == 0.0f))
+    if (!isfinite(fx) || !isfinite(fy) || (fx == 0.0f && fy == 0.0f))
     {
         fx = bx;
         fy = by;
     }
-    rcl_bdc_slew(&fx, &fy, RCL_BDC_TURN_MAX);
     *ox = fx;
     *oy = fy;
     rcl_bdc_last_x = fx;
