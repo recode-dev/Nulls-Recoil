@@ -110,7 +110,6 @@ typedef struct
 #define RCL_AD_CAP_MAX 16
 
 static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
-static uint64_t rcl_bdc_last_ms = 0;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
 static int rcl_ad_dir_built = 0;
@@ -861,7 +860,6 @@ static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 #define RCL_BDC_INTENT_MARGIN 40.0f
 #define RCL_BDC_DANGER_R 1.75f
 #define RCL_BDC_CLEAR_FAR 2000.0f
-#define RCL_BDC_HIT_GATE 1.15f
 #define RCL_BDC_SEL_MAX 12
 #define RCL_BDC_CLOSE_D2 700.0f
 
@@ -870,7 +868,6 @@ static int rcl_bdc_sel_n = 0;
 static float rcl_bdc_last_x = 0.0f;
 static float rcl_bdc_last_y = 0.0f;
 static int rcl_bdc_have_last = 0;
-static float rcl_bdc_impact_ms = 0.0f;
 
 static void rcl_ad_aim_target(float mx, float my, float dx, float dy, float *tx, float *ty)
 {
@@ -1116,7 +1113,6 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     int i;
     int best = -1;
     int aimedNow = 0;
-    rcl_bdc_impact_ms = 0.0f;
     float bs = 0.0f;
     float bx = 0.0f;
     float by = 0.0f;
@@ -1130,15 +1126,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         {
             if (aimed)
             {
-                float th = 0.0f;
                 aimedNow = 1;
-                if (rcl_bd_impact_d2(&rcl_bd_threats[i], mx, my, &th) >= 0.0f && th >= 0.0f)
-                {
-                    if (rcl_bdc_impact_ms == 0.0f || th * 1000.0f < rcl_bdc_impact_ms)
-                    {
-                        rcl_bdc_impact_ms = th * 1000.0f;
-                    }
-                }
             }
             rcl_bdc_sel[rcl_bdc_sel_n] = i;
             rcl_bdc_sel_n++;
@@ -1214,7 +1202,6 @@ static int rcl_ad_update(float mx, float my)
         rcl_bdc_have_last = 0;
         rcl_bdc_last_x = 0.0f;
         rcl_bdc_last_y = 0.0f;
-        rcl_bdc_last_ms = 0;
         return 0;
     }
     float speed = 0.0f;
@@ -1253,19 +1240,19 @@ static int rcl_ad_update(float mx, float my)
     rcl_bd_build_threats();
     if (rcl_bd_threat_n == 0)
     {
-        rcl_bdc_last_ms = 0;
+        rcl_bdc_have_last = 0;
+        rcl_bdc_last_x = 0.0f;
+        rcl_bdc_last_y = 0.0f;
         return 0;
     }
     rcl_bd_intent(&ix, &iy);
     rcl_bdc_pick(mx, my, myRadius, ix, iy, speed, &dirx, &diry);
     if (dirx == 0.0f && diry == 0.0f)
     {
-        rcl_bdc_last_ms = 0;
         return 0;
     }
     rcl_ad_aim_target(mx, my, dirx, diry, &tx, &ty);
     rcl_ad_send_move(tx, ty, mx, my);
-    rcl_bdc_last_ms = now;
     return 1;
 }
 
