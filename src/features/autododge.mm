@@ -722,8 +722,8 @@ static void rcl_bd_build_threats(void)
             for (k = 0; k <= RCL_BD_SEG_SAMPLES; k++)
             {
                 float f = (float)k / (float)RCL_BD_SEG_SAMPLES;
-                rcl_bd_push_style(h->ax + (h->bx - h->ax) * f, h->ay + (h->by - h->ay) * f, 0.0f, 0.0f, h->rad, h->hitr, 0,
-                                  h->style, 0.0f, h->boom);
+                rcl_bd_push_style(h->ax + (h->bx - h->ax) * f, h->ay + (h->by - h->ay) * f,
+                                  0.0f, 0.0f, h->rad, h->hitr, 0, h->style, 0.0f, h->boom);
             }
             continue;
         }

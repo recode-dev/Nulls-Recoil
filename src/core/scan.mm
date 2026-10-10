@@ -132,7 +132,7 @@ BOOL rcl_addr_writable(uintptr_t address, size_t length)
         vm_prot_t protection = 0;
         mach_vm_size_t size = 0;
         uintptr_t start = 0;
-        if (!rcl_query_region(cursor, &protection, NULL, &size, &start))
+        if (!rcl_query_region(cursor, &protection, nullptr, &size, &start))
         {
             return NO;
         }
@@ -228,7 +228,7 @@ BOOL rcl_writable(uintptr_t address, size_t length)
         mach_vm_size_t size = 0;
         uintptr_t start = 0;
         uintptr_t next = 0;
-        if (!rcl_query_region(cursor, &protection, NULL, &size, &start))
+        if (!rcl_query_region(cursor, &protection, nullptr, &size, &start))
         {
             return NO;
         }
@@ -546,7 +546,7 @@ uintptr_t rcl_owner = 0;
 
 int rcl_wired = 0;
 
-dispatch_source_t rcl_scan_timer = NULL;
+dispatch_source_t rcl_scan_timer = nullptr;
 
 BOOL rcl_segment_range(const char *name, uintptr_t *lo, uintptr_t *hi)
 {
@@ -702,7 +702,7 @@ void rcl_heap_regions_refresh(void)
         mach_vm_size_t size = 0;
         uintptr_t start = 0;
         uintptr_t next = 0;
-        if (!rcl_query_region(cursor, &protection, NULL, &size, &start))
+        if (!rcl_query_region(cursor, &protection, nullptr, &size, &start))
         {
             break;
         }

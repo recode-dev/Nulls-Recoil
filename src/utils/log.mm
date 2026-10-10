@@ -1,10 +1,10 @@
 #include "../recoil.h"
 
 static rcl_log_sink_t g_sink = nullptr;
-static bool g_enabled = false;
+static BOOL g_enabled = NO;
 static rcl_log_entry_t g_pending[RCL_LOG_MAX_PENDING];
 static int g_pending_count = 0;
-static bool g_timer_armed = false;
+static BOOL g_timer_armed = NO;
 static uint64_t g_timer_token = 0;
 static uint32_t g_repeat_counts[RCL_LOG_REPEAT_MAX];
 static uint64_t g_repeat_at[RCL_LOG_REPEAT_MAX];
@@ -37,7 +37,7 @@ static void rcl_log_default_sink(const rcl_log_entry_t *entries, int count)
 
 static dispatch_queue_t rcl_log_serial(void)
 {
-    static dispatch_queue_t queue = NULL;
+    static dispatch_queue_t queue = nullptr;
     static dispatch_once_t once = 0;
     dispatch_once(&once, ^{
         queue = dispatch_queue_create("recoil.log", DISPATCH_QUEUE_SERIAL);
@@ -46,7 +46,7 @@ static dispatch_queue_t rcl_log_serial(void)
 }
 static void rcl_log_arm(void)
 {
-    g_timer_armed = true;
+    g_timer_armed = YES;
     uint64_t token = ++g_timer_token;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)RCL_LOG_FLUSH_MS * NSEC_PER_MSEC),
                    dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
@@ -61,10 +61,10 @@ static void rcl_log_arm(void)
 void rcl_log_flush(void)
 {
     __block int count = 0;
-    __block rcl_log_entry_t *batch = NULL;
-    __block rcl_log_sink_t sink = NULL;
+    __block rcl_log_entry_t *batch = nullptr;
+    __block rcl_log_sink_t sink = nullptr;
     dispatch_sync(rcl_log_serial(), ^{
-        g_timer_armed = false;
+        g_timer_armed = NO;
         g_timer_token++;
         count = g_pending_count;
         g_pending_count = 0;
@@ -93,7 +93,7 @@ static void rcl_log_push(int level, const char *text)
     {
         return;
     }
-    __block bool flush_now = false;
+    __block BOOL flush_now = NO;
     dispatch_sync(rcl_log_serial(), ^{
         if (g_pending_count >= RCL_LOG_MAX_PENDING)
         {
@@ -106,9 +106,9 @@ static void rcl_log_push(int level, const char *text)
         entry->text[RCL_LOG_TEXT_MAX - 1] = 0;
         if (g_pending_count >= RCL_LOG_BATCH_SIZE)
         {
-            g_timer_armed = false;
+            g_timer_armed = NO;
             g_timer_token++;
-            flush_now = true;
+            flush_now = YES;
         }
         else if (!g_timer_armed)
         {
@@ -157,7 +157,7 @@ void rcl_log_reset_counters(void)
 }
 void rcl_log_set_enabled(int value)
 {
-    bool next = value != 0;
+    BOOL next = value != 0;
     if (next == g_enabled)
     {
         return;

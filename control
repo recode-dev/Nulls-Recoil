@@ -1,9 +1,14 @@
 Package: com.client.recoil
-Name: Recoil Tweak
+Name: Recoil
 Version: 1.0.1
 Architecture: iphoneos-arm64
-Description: Nulls Brawl Exploit
+Description: Nulls Brawl v69.225 client tweak
+ Client-side tweak for Nulls Brawl v69.225 (arm64, iOS 15 and newer):
+ aim assist and autododge, injected into the game process.
 Maintainer: recode-dev
 Author: @eurogoth
 Section: Tweaks
+Priority: optional
+Depends: firmware (>= 15.0)
+Homepage: https://github.com/recode-dev/Nulls-Recoil
 License: MIT

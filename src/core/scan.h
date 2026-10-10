@@ -139,7 +139,7 @@ static inline BOOL rcl_region_flags(uintptr_t address, vm_prot_t *flags)
     {
         *flags = 0;
     }
-    if (!rcl_query_region(address, &protection, NULL, NULL, NULL))
+    if (!rcl_query_region(address, &protection, nullptr, nullptr, nullptr))
     {
         return NO;
     }
