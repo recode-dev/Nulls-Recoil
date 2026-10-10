@@ -247,7 +247,8 @@ static const rcl_brawler_alias_t rcl_brawler_aliases[] = {
     {"WHIRLWIND", "CARL"},
 };
 
-#define RCL_BRAWLER_ALIAS_COUNT ((int)(sizeof(rcl_brawler_aliases) / sizeof(rcl_brawler_aliases[0])))
+#define RCL_BRAWLER_ALIAS_COUNT                                                                    \
+    ((int)(sizeof(rcl_brawler_aliases) / sizeof(rcl_brawler_aliases[0])))
 
 static char rcl_brawler_buf[RCL_BRAWLER_SLOTS][RCL_BRAWLER_NAME_MAX];
 static int rcl_brawler_slot = 0;

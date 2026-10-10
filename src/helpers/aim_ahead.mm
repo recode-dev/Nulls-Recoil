@@ -227,7 +227,8 @@ static const rcl_aim_ahead_proj_t rcl_aim_ahead_projs[] = {
     {"WhirlwindProjectile", 21},
 };
 
-#define RCL_AIM_AHEAD_PROJ_COUNT ((int)(sizeof(rcl_aim_ahead_projs) / sizeof(rcl_aim_ahead_projs[0])))
+#define RCL_AIM_AHEAD_PROJ_COUNT                                                                   \
+    ((int)(sizeof(rcl_aim_ahead_projs) / sizeof(rcl_aim_ahead_projs[0])))
 
 const rcl_aim_ahead_t *rcl_aim_ahead_by_projectile(const char *projName)
 {

@@ -110,9 +110,10 @@ int rcl_assist_speed(uintptr_t elem, const char *code)
     void *projectile = nullptr;
     const rcl_aim_ahead_t *row = nullptr;
     int32_t speed = 0;
-    if (skill && rcl_read_ptr((uintptr_t)skill + (uintptr_t)OFF_SKILLDATA_PROJECTILES, &list) && list &&
-        rcl_pointer_plausible((uintptr_t)list) && rcl_read_ptr((uintptr_t)list, &projectile) &&
-        projectile && rcl_pointer_plausible((uintptr_t)projectile) &&
+    if (skill && rcl_read_ptr((uintptr_t)skill + (uintptr_t)OFF_SKILLDATA_PROJECTILES, &list) &&
+        list && rcl_pointer_plausible((uintptr_t)list) &&
+        rcl_read_ptr((uintptr_t)list, &projectile) && projectile &&
+        rcl_pointer_plausible((uintptr_t)projectile) &&
         rcl_read_int((uintptr_t)projectile + (uintptr_t)OFF_PROJECTILEDATA_SPEED, &speed))
     {
         if (speed >= RCL_ASSIST_SPEED_MIN && speed <= RCL_ASSIST_SPEED_MAX)
@@ -177,7 +178,8 @@ static int rcl_assist_reachable(const rcl_obj_t *object, int32_t myX, int32_t my
     {
         return 0;
     }
-    return rcl_wall_los((float)myX, (float)myY, (float)object->x, (float)object->y, RCL_WALL_BLOCKS_PROJECTILES);
+    return rcl_wall_los((float)myX, (float)myY, (float)object->x, (float)object->y,
+                        RCL_WALL_BLOCKS_PROJECTILES);
 }
 
 int rcl_assist_pick(uintptr_t elem, int32_t myX, int32_t myY, int range, rcl_assist_target_t *out)
@@ -416,7 +418,8 @@ void rcl_run_assist(void)
     leadY = (float)(target.y - myY);
     if (speed > 0)
     {
-        float t = rcl_assist_intercept(leadX, leadY, rcl_assist_seen_vx, rcl_assist_seen_vy, (float)speed) +
+        float t = rcl_assist_intercept(leadX, leadY, rcl_assist_seen_vx, rcl_assist_seen_vy,
+                                       (float)speed) +
                   RCL_ASSIST_LATENCY;
         if (t > RCL_ASSIST_LEAD_TMAX)
         {

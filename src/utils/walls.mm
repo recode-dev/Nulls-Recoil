@@ -41,7 +41,8 @@ int rcl_cell(int tx, int ty, int *proj, int *move)
     {
         return 0;
     }
-    if (!rcl_read_ptr(rcl_tiles + (uintptr_t)(ty * rcl_w + tx) * (uintptr_t)RCL_TILE_PTR_STRIDE, &tile))
+    if (!rcl_read_ptr(rcl_tiles + (uintptr_t)(ty * rcl_w + tx) * (uintptr_t)RCL_TILE_PTR_STRIDE,
+                      &tile))
     {
         return 0;
     }

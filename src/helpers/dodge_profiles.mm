@@ -24,14 +24,15 @@ typedef struct
 } rcl_cross_spec_t;
 
 static const float rcl_spike_arc[RCL_DP_ARC_N][3] = {
-    {0.0f, 200.0f, 0.0f},      {110.0f, 515.0f, 32.0f},   {207.0f, 797.0f, 216.0f},  {312.0f, 999.0f, 519.0f},
-    {411.0f, 1066.0f, 930.0f}, {513.0f, 995.0f, 1377.0f}, {557.0f, 883.0f, 1611.0f},
+    {0.0f, 200.0f, 0.0f},      {110.0f, 515.0f, 32.0f},   {207.0f, 797.0f, 216.0f},
+    {312.0f, 999.0f, 519.0f},  {411.0f, 1066.0f, 930.0f}, {513.0f, 995.0f, 1377.0f},
+    {557.0f, 883.0f, 1611.0f},
 };
 
 static int rcl_spike_variant = 0;
 
-static void rcl_hz_seg(rcl_hazard_t *h, const char *name, float ax, float ay, float bx, float by, float radius,
-                       float t0, float t1)
+static void rcl_hz_seg(rcl_hazard_t *h, const char *name, float ax, float ay, float bx, float by,
+                       float radius, float t0, float t1)
 {
     h->has_segment = 1;
     h->x = 0.0f;
@@ -46,7 +47,8 @@ static void rcl_hz_seg(rcl_hazard_t *h, const char *name, float ax, float ay, fl
     h->name = name;
 }
 
-static void rcl_hz_blob(rcl_hazard_t *h, const char *name, float x, float y, float radius, float t0, float t1)
+static void rcl_hz_blob(rcl_hazard_t *h, const char *name, float x, float y, float radius, float t0,
+                        float t1)
 {
     h->has_segment = 0;
     h->x = x;
@@ -66,8 +68,8 @@ static float rcl_dp_time(uint64_t spawned_at, uint64_t now_ms)
     return (float)(spawned_at ? spawned_at : now_ms);
 }
 
-static int rcl_cross_arms(rcl_hazard_t *out, int max_out, const char *name, float cx, float cy, float arm,
-                          float radius, float t0, float t1, int diagonal)
+static int rcl_cross_arms(rcl_hazard_t *out, int max_out, const char *name, float cx, float cy,
+                          float arm, float radius, float t0, float t1, int diagonal)
 {
     static const float diag = 0.70710678f;
     int n = 0;
@@ -90,7 +92,8 @@ static int rcl_cross_arms(rcl_hazard_t *out, int max_out, const char *name, floa
             dx = (k == 0) ? 1.0f : 0.0f;
             dy = (k == 0) ? 0.0f : 1.0f;
         }
-        rcl_hz_seg(&out[n], name, cx - dx * arm, cy - dy * arm, cx + dx * arm, cy + dy * arm, radius, t0, t1);
+        rcl_hz_seg(&out[n], name, cx - dx * arm, cy - dy * arm, cx + dx * arm, cy + dy * arm,
+                   radius, t0, t1);
         n++;
     }
     return n;
@@ -123,7 +126,8 @@ static int rcl_cross_profile(const rcl_proj_t *p, uint64_t now_ms, rcl_hazard_t 
     land_at = rcl_dp_time(p->spawnedAt, now_ms) + spec->flight_time_ms;
     t0 = land_at - RCL_DP_TICK_MS;
     t1 = land_at + burst_life + RCL_DP_TICK_MS;
-    return rcl_cross_arms(out, max_out, p->name, cx, cy, arm_length, spec->child_radius, t0, t1, diagonal);
+    return rcl_cross_arms(out, max_out, p->name, cx, cy, arm_length, spec->child_radius, t0, t1,
+                          diagonal);
 }
 
 static void rcl_spike_endpoint(const rcl_proj_t *p, float *ex, float *ey, float *edist)
@@ -155,13 +159,15 @@ static int rcl_cactus_profile(const rcl_proj_t *p, uint64_t now_ms, rcl_hazard_t
     float burst_at = 0.0f;
     int n = 0;
     rcl_spike_endpoint(p, &end_x, &end_y, &end_dist);
-    burst_at = rcl_dp_time(p->spawnedAt, now_ms) + RCL_DP_FLIGHT_TIME_MS * (end_dist / RCL_DP_FLIGHT_DIST);
+    burst_at =
+        rcl_dp_time(p->spawnedAt, now_ms) + RCL_DP_FLIGHT_TIME_MS * (end_dist / RCL_DP_FLIGHT_DIST);
     if (p->spawnAreaRadius > 0)
     {
         if (n < max_out)
         {
             rcl_hz_blob(&out[n], p->name, end_x, end_y, (float)p->spawnAreaRadius, burst_at,
-                        burst_at + (float)(p->spawnAreaActiveTime ? p->spawnAreaActiveTime : (int)RCL_DP_BLAST_MS));
+                        burst_at + (float)(p->spawnAreaActiveTime ? p->spawnAreaActiveTime
+                                                                  : (int)RCL_DP_BLAST_MS));
             n++;
         }
     }
@@ -177,8 +183,8 @@ static int rcl_cactus_profile(const rcl_proj_t *p, uint64_t now_ms, rcl_hazard_t
             float dy = sinf(a) * RCL_DP_ARM_LENGTH;
             if (n < max_out)
             {
-                rcl_hz_seg(&out[n], p->name, end_x - dx, end_y - dy, end_x + dx, end_y + dy, RCL_DP_CHILD_RADIUS, t0,
-                           t1);
+                rcl_hz_seg(&out[n], p->name, end_x - dx, end_y - dy, end_x + dx, end_y + dy,
+                           RCL_DP_CHILD_RADIUS, t0, t1);
                 n++;
             }
         }
@@ -202,8 +208,9 @@ static int rcl_cactus_profile(const rcl_proj_t *p, uint64_t now_ms, rcl_hazard_t
                 float by = rcl_spike_arc[k + 1][2];
                 if (n < max_out)
                 {
-                    rcl_hz_seg(&out[n], p->name, end_x + ax * cr - ay * sr, end_y + ax * sr + ay * cr,
-                               end_x + bx * cr - by * sr, end_y + bx * sr + by * cr, RCL_DP_CHILD_RADIUS, burst_at + ta,
+                    rcl_hz_seg(&out[n], p->name, end_x + ax * cr - ay * sr,
+                               end_y + ax * sr + ay * cr, end_x + bx * cr - by * sr,
+                               end_y + bx * sr + by * cr, RCL_DP_CHILD_RADIUS, burst_at + ta,
                                burst_at + tb);
                     n++;
                 }

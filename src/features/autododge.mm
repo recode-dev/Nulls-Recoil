@@ -420,7 +420,8 @@ static int rcl_ad_home_pos(const rcl_proj_t *p, float *xOut, float *yOut)
     return 1;
 }
 
-static float rcl_ad_life_left(const rcl_proj_t *p, const rcl_kind_t *spec, float spd, uint64_t nowMs)
+static float rcl_ad_life_left(const rcl_proj_t *p, const rcl_kind_t *spec, float spd,
+                              uint64_t nowMs)
 {
     float maxR = rcl_ad_kind_reach(p, spec, spd);
     float homeX = 0.0f;
@@ -608,7 +609,8 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
                 float tHit = playerAlong > 0.0f ? playerAlong : 0.0f;
                 float hitX = (float)p->x + ux * tHit;
                 float hitY = (float)p->y + uy * tHit;
-                if (!rcl_wall_los((float)p->x, (float)p->y, hitX, hitY, RCL_WALL_BLOCKS_PROJECTILES))
+                if (!rcl_wall_los((float)p->x, (float)p->y, hitX, hitY,
+                                  RCL_WALL_BLOCKS_PROJECTILES))
                 {
                     continue;
                 }
@@ -689,8 +691,8 @@ static void rcl_bd_push(float x, float y, float vx, float vy, float rad, float h
     rcl_bd_threat_n++;
 }
 
-static void rcl_bd_push_style(float x, float y, float vx, float vy, float rad, float hitr, int thrower, int style,
-                          float left, float boom)
+static void rcl_bd_push_style(float x, float y, float vx, float vy, float rad, float hitr,
+                              int thrower, int style, float left, float boom)
 {
     rcl_bd_push(x, y, vx, vy, rad, hitr);
     if (rcl_bd_threat_n > 0)
@@ -718,18 +720,20 @@ static void rcl_bd_build_threats(void)
             for (k = 0; k <= RCL_BD_SEG_SAMPLES; k++)
             {
                 float f = (float)k / (float)RCL_BD_SEG_SAMPLES;
-                rcl_bd_push_style(h->ax + (h->bx - h->ax) * f, h->ay + (h->by - h->ay) * f,
-                                  0.0f, 0.0f, h->rad, h->hitr, 0, h->style, 0.0f, h->boom);
+                rcl_bd_push_style(h->ax + (h->bx - h->ax) * f, h->ay + (h->by - h->ay) * f, 0.0f,
+                                  0.0f, h->rad, h->hitr, 0, h->style, 0.0f, h->boom);
             }
             continue;
         }
         rcl_ad_fade_vel(h, 0.0f, &vx, &vy);
         if (h->thrower && h->left > 0.0f && h->left < 420.0f)
         {
-            rcl_bd_push_style(h->x, h->y, 0.0f, 0.0f, h->rad, h->hitr, 1, h->style, h->left, h->boom);
+            rcl_bd_push_style(h->x, h->y, 0.0f, 0.0f, h->rad, h->hitr, 1, h->style, h->left,
+                              h->boom);
             continue;
         }
-        rcl_bd_push_style(h->x, h->y, vx, vy, h->rad, h->hitr, h->thrower, h->style, h->left, h->boom);
+        rcl_bd_push_style(h->x, h->y, vx, vy, h->rad, h->hitr, h->thrower, h->style, h->left,
+                          h->boom);
     }
 }
 
@@ -873,7 +877,8 @@ static void rcl_ad_aim_target(float mx, float my, float dx, float dy, float *tx,
     float d = RCL_AD_REACH;
     while (d > RCL_AD_REACH_MIN)
     {
-        if (!rcl_wall_is_blocked_wide(mx + dx * d, my + dy * d, RCL_AD_WALL_BODY, RCL_WALL_BLOCKS_MOVEMENT))
+        if (!rcl_wall_is_blocked_wide(mx + dx * d, my + dy * d, RCL_AD_WALL_BODY,
+                                      RCL_WALL_BLOCKS_MOVEMENT))
         {
             break;
         }
@@ -964,10 +969,8 @@ static float rcl_bdc_danger_r(const rcl_bd_threat_t *p, float myR)
     return r;
 }
 
-
-
-static float rcl_bdc_gap_one(float dx, float dy, float mx, float my, float speed, const rcl_bd_threat_t *p,
-                               float hit)
+static float rcl_bdc_gap_one(float dx, float dy, float mx, float my, float speed,
+                             const rcl_bd_threat_t *p, float hit)
 {
     float rx = mx - p->x;
     float ry = my - p->y;
@@ -1026,7 +1029,8 @@ static float rcl_bdc_dir_score(float dx, float dy, float mx, float my, float myR
     return rcl_bdc_gap_cost(dx, dy, mx, my, speed, myR) + rcl_bdc_wall_cost(mx, my, dx, dy);
 }
 
-static void rcl_bd_refine(float mx, float my, float myR, float speed, float dx, float dy, float *ox, float *oy)
+static void rcl_bd_refine(float mx, float my, float myR, float speed, float dx, float dy, float *ox,
+                          float *oy)
 {
     float best = rcl_bdc_dir_score(dx, dy, mx, my, myR, speed);
     float step = RCL_BDC_REFINE_STEP;
@@ -1106,7 +1110,8 @@ static void rcl_bdc_sel_trim(int *sel, int *n, float mx, float my)
     }
 }
 
-static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, float speed, float *ox, float *oy)
+static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, float speed, float *ox,
+                         float *oy)
 {
     int i;
     int best = -1;
@@ -1181,7 +1186,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         }
     }
     if (!aimedNow && rcl_bdc_clearance(bx, by, mx, my, speed, myR) <=
-        rcl_bdc_clearance(0.0f, 0.0f, mx, my, speed, myR) + RCL_BDC_GAIN_MIN)
+                         rcl_bdc_clearance(0.0f, 0.0f, mx, my, speed, myR) + RCL_BDC_GAIN_MIN)
     {
         *ox = 0.0f;
         *oy = 0.0f;
@@ -1330,7 +1335,8 @@ void rcl_autododge(void)
                 rcl_read_int((uintptr_t)resolved + RCL_MGR_COUNT_OFF, &liveCount);
             }
             if (resolved && liveCount > 0 && rcl_hop_chosen == 1 &&
-                (liveCount != rcl_walk_count || (rcl_walk_tick != rcl_ticks_b && (rcl_ticks_b % RCL_WALK_EVERY) == 0)))
+                (liveCount != rcl_walk_count ||
+                 (rcl_walk_tick != rcl_ticks_b && (rcl_ticks_b % RCL_WALK_EVERY) == 0)))
             {
                 rcl_walk_count = liveCount;
                 rcl_walk_tick = rcl_ticks_b;
@@ -1380,10 +1386,12 @@ void rcl_autododge(void)
         rcl_publish_own(objects[ownIndex].object, ownFrom);
     }
     rcl_own_elem_scan = objects[ownIndex].object;
-    ownTeam = (rcl_team_off == (int)RCL_OBJ_TEAM_OFF) ? objects[ownIndex].teamOld : objects[ownIndex].teamNew;
+    ownTeam = (rcl_team_off == (int)RCL_OBJ_TEAM_OFF) ? objects[ownIndex].teamOld
+                                                      : objects[ownIndex].teamNew;
     ownX = objects[ownIndex].x;
     ownY = objects[ownIndex].y;
-    rcl_death_signals((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY);
+    rcl_death_signals((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX,
+                      ownY);
     rcl_alive(ownX, ownY);
     {
         int32_t projCount = 0;

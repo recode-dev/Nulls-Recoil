@@ -1,6 +1,7 @@
 #include "../recoil.h"
 
-#if RCL_CI_HASH_INNER_MASK_RVA && RCL_CI_HASH_OUTER_MASK_RVA && RCL_BM_HASH_ENABLED_OFF && RCL_BM_HASH_KEY_OFF
+#if RCL_CI_HASH_INNER_MASK_RVA && RCL_CI_HASH_OUTER_MASK_RVA && RCL_BM_HASH_ENABLED_OFF &&         \
+    RCL_BM_HASH_KEY_OFF
 #define RCL_CI_SIGNING_ON 1
 #else
 #define RCL_CI_SIGNING_ON 0
@@ -29,7 +30,8 @@ int rcl_ci_load_constants(void)
     }
     for (i = 0; i < (int)RCL_CI_TABLE_TYPES; i++)
     {
-        if (!rcl_read_bytes(rcl_base + RCL_CI_TYPE_TABLE_RVA + (uintptr_t)i * 4ULL, &rcl_ci_table[i], sizeof(uint32_t)))
+        if (!rcl_read_bytes(rcl_base + RCL_CI_TYPE_TABLE_RVA + (uintptr_t)i * 4ULL,
+                            &rcl_ci_table[i], sizeof(uint32_t)))
         {
             return 0;
         }
@@ -149,7 +151,8 @@ int rcl_enqueue_skill(int x, int y, int type, void *skillData)
     rcl_write_bytes((uintptr_t)msg + RCL_Y_OFF, &vy, sizeof(vy));
     if (skillData)
     {
-        rcl_write_bytes((uintptr_t)msg + (uintptr_t)OFF_CLIENTINPUT_SKILLDATA, &skillData, sizeof(skillData));
+        rcl_write_bytes((uintptr_t)msg + (uintptr_t)OFF_CLIENTINPUT_SKILLDATA, &skillData,
+                        sizeof(skillData));
     }
     rcl_ci_sign(msg, battle);
     if (type == (int)RCL_TYPE_MOVE)

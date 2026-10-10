@@ -338,7 +338,8 @@ void rcl_run_autoaim(void)
     {
         return;
     }
-    if (count > 1 && !rcl_read_ptr((uintptr_t)objects + (uintptr_t)(count - 1) * sizeof(void *), &probe))
+    if (count > 1 &&
+        !rcl_read_ptr((uintptr_t)objects + (uintptr_t)(count - 1) * sizeof(void *), &probe))
     {
         return;
     }
@@ -407,7 +408,8 @@ void rcl_run_autoaim(void)
         {
             continue;
         }
-        if (!rcl_wall_los((float)ownX, (float)ownY, (float)ex, (float)ey, RCL_WALL_BLOCKS_PROJECTILES))
+        if (!rcl_wall_los((float)ownX, (float)ownY, (float)ex, (float)ey,
+                          RCL_WALL_BLOCKS_PROJECTILES))
         {
             continue;
         }
