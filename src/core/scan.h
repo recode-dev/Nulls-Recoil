@@ -59,7 +59,6 @@ extern __thread BOOL rcl_inside_hook;
 extern int rcl_dump_np;
 extern BOOL rcl_mode_strong;
 extern uintptr_t rcl_players_object;
-extern int rcl_manager_count;
 extern uintptr_t rcl_objvote_best_owner;
 extern int rcl_objvote_best_teamcount;
 extern rcl_objhit_t rcl_objhits[64];
@@ -78,16 +77,12 @@ extern uintptr_t rcl_addr_getx;
 extern uintptr_t rcl_addr_gety;
 extern uintptr_t rcl_addr_battlescreen;
 extern volatile int rcl_at;
-extern int rcl_no_source_passes;
 extern int rcl_sig_ticks;
 extern uintptr_t rcl_sig_last;
 extern uintptr_t rcl_players_array;
 extern int rcl_players_count;
 extern uint64_t rcl_walk_tick;
 extern int rcl_walk_count;
-extern int rcl_coord_fixed_logged;
-extern uint64_t rcl_time;
-extern uint64_t rcl_q_max;
 extern uintptr_t rcl_owner;
 extern int rcl_wired;
 extern dispatch_source_t rcl_scan_timer;
@@ -97,10 +92,7 @@ extern uintptr_t rcl_heap_window_low;
 extern uintptr_t rcl_heap_window_high;
 extern rcl_trail_t rcl_trail[8];
 extern int rcl_trail_count;
-extern int rcl_dodge_probe_usable;
-extern int rcl_issued;
 extern uintptr_t rcl_own_elem_2;
-extern uint64_t rcl_hold;
 
 BOOL rcl_query_region(uintptr_t address, vm_prot_t *protection, vm_prot_t *maxProtection, mach_vm_size_t *regionSize,
                       uintptr_t *regionStart);
@@ -461,10 +453,7 @@ void rcl_slot_note(int index, void *self, uint64_t arg1);
 uint64_t rcl_hook_dispatches(void);
 uint64_t rcl_object_dispatches(void);
 
-extern int rcl_bar_logged;
-extern int rcl_fb_logged;
 extern int rcl_fb_on;
-extern int rcl_idle_logged;
 extern uint64_t rcl_idle_start;
 extern int rcl_live_objs;
 extern int rcl_live_teams;
@@ -587,8 +576,6 @@ void rcl_run_autododge(int from_update);
 #define RCL_QUIET_SECS 10
 #define RCL_LIVE_OBJ_MIN 3
 #define RCL_LIVE_TEAM_MIN 2
-#define RCL_BAR_TICKS 30
-#define RCL_IDLE_TICKS 15
 #define RCL_IDLE_RETRY_TICKS 300
 #define RCL_SNAPSHOT_DELAY 1.2
 #define RCL_LOGS_ON 0
@@ -600,12 +587,9 @@ extern uintptr_t rcl_own_ptr_a;
 extern int rcl_hop_chosen;
 extern int rcl_hop_sticky;
 extern int rcl_modesig_hits;
-extern int rcl_floor_logged;
-extern int rcl_fallback_logged;
 extern uintptr_t rcl_own_ptr_b;
 extern int rcl_own_index_3;
 extern uintptr_t rcl_scan_container;
-extern int rcl_own_logged;
 extern uintptr_t rcl_hop_scene;
 extern int rcl_last_choice;
 extern int rcl_hop_logs;
@@ -615,13 +599,9 @@ extern uint64_t rcl_probe_last_ms;
 extern int rcl_coord_ok;
 extern int rcl_coord_usable;
 extern int rcl_team_off;
-extern uint64_t rcl_last_write_ms;
-extern rcl_obj_t rcl_dodge_probe_list[64];
 extern int rcl_gidless;
-extern int rcl_stage;
 extern int rcl_dead;
 extern int rcl_own_team_a;
-extern int rcl_proj_other;
 extern int rcl_own_team_seen;
 extern uintptr_t rcl_proj_addr;
 extern uint8_t rcl_proj_bytes[0x100];
@@ -674,9 +654,6 @@ uintptr_t rcl_coord_y_off(void);
 
 int rcl_ctrl_bounds(uintptr_t base, int32_t *wOut, int32_t *hOut);
 
-extern int rcl_own_x;
-extern int rcl_own_y;
-
 extern int rcl_cand_changes[3];
 extern int rcl_cand_frame[3];
 extern int rcl_dead_slot;
@@ -702,7 +679,6 @@ extern int rcl_prev_valid;
 extern int rcl_respawn_tick;
 extern int rcl_state_code;
 extern int rcl_team_trust;
-extern uint64_t rcl_tick_stamp;
 void rcl_clear_life(void);
 int rcl_life(uintptr_t ownElem, int32_t ownX, int32_t ownY);
 int rcl_own_from_slot(uintptr_t *objectOut, int32_t *gidOut);
@@ -717,7 +693,6 @@ void rcl_roster(uintptr_t ownElem, int ownIndex, int ownTeam, const rcl_obj_t *o
 int rcl_team_at(const rcl_obj_t *objects, int index);
 
 #define RCL_CLUSTER 700.0f
-#define RCL_DEAD_ONCE 1
 #define RCL_GIDLESS 1
 #define RCL_POS_BONUS 8
 #define RCL_DIST_BONUS 6

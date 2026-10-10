@@ -6,10 +6,6 @@ __thread int rcl_in_drive = 0;
 
 int32_t rcl_pl_mine[12];
 
-int rcl_active = 0;
-
-int rcl_moving = 0;
-
 int rcl_cand_now[3];
 
 int rcl_cand_seen = 0;
@@ -1300,10 +1296,6 @@ void rcl_autododge(void)
     {
         source = rcl_trail[rcl_trail_best].manager;
     }
-    else
-    {
-        rcl_no_source_passes = 0;
-    }
     rcl_ticks_a++;
     if (!source)
     {
@@ -1386,10 +1378,6 @@ void rcl_autododge(void)
             return;
         }
         rcl_publish_own(objects[ownIndex].object, ownFrom);
-        if (!rcl_own_logged)
-        {
-            rcl_own_logged = 1;
-        }
     }
     rcl_own_elem_2 = objects[ownIndex].object;
     ownTeam = (rcl_team_off == (int)RCL_OBJ_TEAM_OFF) ? objects[ownIndex].teamOld : objects[ownIndex].teamNew;
@@ -1418,11 +1406,10 @@ void rcl_autododge(void)
             return;
         }
         rcl_proj_scan(rcl_manager_ptr, projCount);
-        rcl_active = rcl_ad_update((float)ownX, (float)ownY);
+        rcl_ad_update((float)ownX, (float)ownY);
     }
 }
 
-int rcl_dodge_probe_usable = 0;
 float rcl_own_radius(void)
 {
     if (rcl_own_r > 1.0f)

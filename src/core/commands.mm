@@ -507,5 +507,3 @@ int rcl_move_to(int32_t x, int32_t y, float ox, float oy)
     }
     return 1;
 }
-
-uintptr_t rcl_pred_last = 0;

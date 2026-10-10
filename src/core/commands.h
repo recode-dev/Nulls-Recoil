@@ -17,7 +17,6 @@ void *rcl_msg_alloc(void);
 void *rcl_manager(void);
 int rcl_pred_set(int x, int y);
 int rcl_move_to(int32_t x, int32_t y, float ox, float oy);
-extern uintptr_t rcl_pred_last;
 
 int rcl_ci_load_constants(void);
 uint32_t rcl_ci_sign(void *ci, void *battle);

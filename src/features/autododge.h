@@ -6,9 +6,7 @@
 
 extern __thread int rcl_in_drive;
 extern int32_t rcl_pl_mine[12];
-extern int rcl_active;
 
-extern int rcl_moving;
 extern int rcl_cand_now[3];
 extern int rcl_cand_seen;
 extern int32_t rcl_prev_x;

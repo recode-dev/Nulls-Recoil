@@ -12,8 +12,6 @@ int rcl_dump_np = 0;
 
 BOOL rcl_mode_strong = NO;
 
-int rcl_manager_count = 0;
-
 uintptr_t rcl_objvote_best_owner = 0;
 
 int rcl_objvote_best_teamcount = 0;
@@ -54,8 +52,6 @@ uintptr_t rcl_slot_object[34] = {0};
 
 uintptr_t rcl_slot_arg[34] = {0};
 
-int rcl_no_source_passes = 0;
-
 uintptr_t rcl_slot_adopted = 0;
 
 int rcl_sig_ticks = 0;
@@ -65,10 +61,6 @@ uintptr_t rcl_sig_last = 0;
 uint64_t rcl_walk_tick = 0;
 
 int rcl_walk_count = -1;
-
-int rcl_coord_fixed_logged = 0;
-
-uint64_t rcl_time = 0;
 
 BOOL rcl_query_region(uintptr_t address, vm_prot_t *protection, vm_prot_t *maxProtection, mach_vm_size_t *regionSize,
                       uintptr_t *regionStart)
@@ -540,8 +532,6 @@ BOOL find_game_image(uintptr_t *out_base)
     return NO;
 }
 
-uint64_t rcl_q_max = 0;
-
 uintptr_t rcl_owner = 0;
 
 int rcl_wired = 0;
@@ -861,10 +851,6 @@ BOOL rcl_manager_shape(uintptr_t manager)
 }
 int rcl_trail_count = 0;
 
-int rcl_issued = 0;
-
-uint64_t rcl_hold = 0;
-
 BOOL rcl_vtable_in_image(uintptr_t vtable)
 {
     uintptr_t lo = 0;
@@ -1100,11 +1086,6 @@ void rcl_discriminate(uintptr_t manager)
     memset(objects, 0, sizeof(objects));
     memset(words, 0, sizeof(words));
     usable = rcl_collect(manager, objects, 64);
-    rcl_dodge_probe_usable = usable;
-    if (usable > 0)
-    {
-        memcpy(rcl_dodge_probe_list, objects, (size_t)usable * sizeof(rcl_dodge_probe_list[0]));
-    }
     if (usable == 0)
     {
         return;
@@ -1309,10 +1290,6 @@ void rcl_discriminate(uintptr_t manager)
             continue;
         }
         floatPairOff = w * 4;
-    }
-    if (!rcl_coord_fixed_logged)
-    {
-        rcl_coord_fixed_logged = 1;
     }
 }
 
@@ -1660,10 +1637,6 @@ int rcl_live_teams = 0;
 
 int rcl_fb_on = 0;
 
-int rcl_fb_logged = 0;
-
-int rcl_bar_logged = 0;
-
 unsigned long long rcl_obj_prev = 0;
 
 uintptr_t rcl_site = 0;
@@ -1752,12 +1725,9 @@ void rcl_tick_begin(void)
     rcl_tick_object = o;
     rcl_tick_array = a;
     rcl_tick_count = c;
-    rcl_tick_stamp++;
 }
 
 uint64_t rcl_idle_start = 0;
-
-int rcl_idle_logged = 0;
 
 void rcl_slot_hooks_install(void)
 {
@@ -2399,7 +2369,6 @@ int rcl_state_tick(void)
     {
         rcl_publish(players, (uintptr_t)array, count, capacity, "hop-adopt");
     }
-    rcl_manager_count = count;
     return 1;
 }
 
@@ -2408,16 +2377,11 @@ int rcl_scan_allowed(uint64_t fired, uint64_t)
     if (fired > 0)
     {
         rcl_idle_start = 0;
-        rcl_idle_logged = 0;
         return 1;
     }
     if (rcl_idle_start == 0)
     {
         rcl_idle_start = rcl_ticks_b;
-    }
-    if (!rcl_idle_logged && (rcl_ticks_b - rcl_idle_start) >= RCL_IDLE_TICKS)
-    {
-        rcl_idle_logged = 1;
     }
     if ((rcl_ticks_b - rcl_idle_start) < RCL_IDLE_RETRY_TICKS)
     {
@@ -2433,19 +2397,11 @@ int rcl_battle_gate_2(int v63)
     rcl_fb_on = (v63 || liveEnough) ? 1 : 0;
     if (!rcl_fb_on)
     {
-        if (!rcl_bar_logged && rcl_ticks_b >= RCL_BAR_TICKS)
-        {
-            rcl_bar_logged = 1;
-        }
         return 0;
     }
     if (v63)
     {
         return 1;
-    }
-    if (!rcl_fb_logged)
-    {
-        rcl_fb_logged = 1;
     }
     return 1;
 }
@@ -2562,7 +2518,6 @@ void rcl_run_autododge(int from_update)
         return;
     }
     rcl_in_drive = 1;
-    rcl_time = rcl_us();
     rcl_autododge();
     rcl_in_drive = 0;
 }
@@ -2611,8 +2566,6 @@ __attribute__((constructor)) void start(void)
     });
 }
 
-int rcl_dead_probe_done = 0;
-
 int rcl_prev_state = -1;
 
 int rcl_hop_chosen = -1;
@@ -2621,13 +2574,7 @@ int rcl_hop_sticky = 0;
 
 int rcl_modesig_hits = 0;
 
-int rcl_floor_logged = 0;
-
-int rcl_fallback_logged = 0;
-
 uintptr_t rcl_scan_container = 0;
-
-int rcl_own_logged = 0;
 
 int rcl_modesig_hit(uintptr_t at)
 {
@@ -2733,7 +2680,6 @@ void rcl_modesig_tick(void)
         if (count >= 2 && cap >= count && cap <= 4096)
         {
             void *mgrArray = nullptr;
-            rcl_manager_count = count;
             if (rcl_read_ptr((uintptr_t)mgr + RCL_MGR_ARRAY_OFF, &mgrArray) && mgrArray)
             {
                 rcl_publish((uintptr_t)mgr, (uintptr_t)mgrArray, count, cap, "modesig");
@@ -3014,10 +2960,6 @@ int rcl_scan_ready(int battle)
 {
     if (rcl_ticks_b < RCL_SCAN_FLOOR_TICKS)
     {
-        if (!rcl_floor_logged)
-        {
-            rcl_floor_logged = 1;
-        }
         return 0;
     }
     if (battle || rcl_scene_object)
@@ -3027,10 +2969,6 @@ int rcl_scan_ready(int battle)
     if (rcl_ticks_b < RCL_SCAN_FALLBACK_TICKS)
     {
         return 0;
-    }
-    if (!rcl_fallback_logged)
-    {
-        rcl_fallback_logged = 1;
     }
     return (rcl_ticks_b % RCL_BUCKET_TICKS_2) == 0;
 }
@@ -3090,10 +3028,6 @@ int rcl_coord_ok = 0;
 int rcl_coord_usable = 0;
 
 int rcl_team_off = (int)RCL_OBJ_TEAM_OFF;
-
-uint64_t rcl_last_write_ms = 0;
-
-rcl_obj_t rcl_dodge_probe_list[64];
 
 void rcl_read_map(uintptr_t mode)
 {
@@ -3224,13 +3158,9 @@ uintptr_t rcl_list_gid_off(uintptr_t array, int32_t count)
     return off;
 }
 
-int rcl_stage = 0;
-
 int rcl_dead = 0;
 
 int rcl_own_team_a = -1;
-
-int rcl_proj_other = 0;
 
 int rcl_own_team_seen = 0;
 
@@ -3539,7 +3469,6 @@ int rcl_proj_scan(uintptr_t manager, int32_t count)
     {
         rcl_projs[k].classRva = (uintptr_t)-1;
     }
-    rcl_proj_other = 0;
     rcl_proj_death_n = 0;
     nowMs = (uint64_t)(CFAbsoluteTimeGetCurrent() * 1000.0);
     for (i = 0; i < count && found < 16; i++)
@@ -3658,13 +3587,6 @@ int rcl_proj_scan(uintptr_t manager, int32_t count)
                 else
                 {
                     rcl_projs[slot].team = -1;
-                }
-            }
-            if (rcl_projs[slot].team >= 0)
-            {
-                if (rcl_projs[slot].team != rcl_own_team_a)
-                {
-                    rcl_proj_other++;
                 }
             }
         }
@@ -4012,10 +3934,6 @@ void rcl_probe(uintptr_t manager, uintptr_t mode)
         }
     }
     rcl_team_off = (int)RCL_OBJ_TEAM_OFF;
-    if (!RCL_DEAD_ONCE || !rcl_dead_probe_done)
-    {
-        rcl_dead_probe_done = 1;
-    }
     rcl_coord_usable = usable;
     {
         int unique = 0;
@@ -4201,8 +4119,6 @@ uintptr_t rcl_own_ptr = 0;
 int rcl_own_index = -1;
 
 const char *rcl_own_from = "none";
-
-uint64_t rcl_tick_stamp = 0;
 
 void rcl_own_index_probe(void)
 {
@@ -4411,8 +4327,6 @@ void rcl_roster(uintptr_t ownElem, int ownIndex, int ownTeam, const rcl_obj_t *o
         rcl_pl_n++;
         if (isOwn)
         {
-            rcl_own_x = objects[i].x;
-            rcl_own_y = objects[i].y;
             continue;
         }
         for (h = 0; h < hn; h++)
@@ -4545,12 +4459,6 @@ int rcl_respawn_tick = 0;
 
 void rcl_clear_life(void)
 {
-    rcl_stage = 0;
-    rcl_active = 0;
-    rcl_last_write_ms = 0;
-    rcl_issued = 0;
-    rcl_moving = 0;
-    rcl_hold = 0;
     rcl_prev_valid = 0;
 }
 
@@ -5258,10 +5166,6 @@ void rcl_candidates(uintptr_t ownElem, int *out)
         out[2] = (int)ctrlAlive;
     }
 }
-
-int rcl_own_x = 0;
-
-int rcl_own_y = 0;
 
 int rcl_ascii_word(uintptr_t address)
 {
