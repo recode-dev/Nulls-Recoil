@@ -6,9 +6,6 @@ static rcl_log_entry_t g_pending[RCL_LOG_MAX_PENDING];
 static int g_pending_count = 0;
 static BOOL g_timer_armed = NO;
 static uint64_t g_timer_token = 0;
-static uint32_t g_repeat_counts[RCL_LOG_REPEAT_MAX];
-static uint64_t g_repeat_at[RCL_LOG_REPEAT_MAX];
-static char g_repeat_keys[RCL_LOG_REPEAT_MAX][RCL_LOG_TEXT_MAX];
 
 static const char *rcl_log_level_name(int level)
 {
@@ -147,14 +144,6 @@ void rcl_log_info(const char *format, ...)
     rcl_log_emit(RCL_LOG_INFO, format, args);
     va_end(args);
 }
-void rcl_log_reset_counters(void)
-{
-    dispatch_sync(rcl_log_serial(), ^{
-        memset(g_repeat_counts, 0, sizeof(g_repeat_counts));
-        memset(g_repeat_at, 0, sizeof(g_repeat_at));
-        memset(g_repeat_keys, 0, sizeof(g_repeat_keys));
-    });
-}
 void rcl_log_set_enabled(int value)
 {
     BOOL next = value != 0;
@@ -169,5 +158,4 @@ void rcl_log_set_enabled(int value)
         return;
     }
     rcl_log_flush();
-    rcl_log_reset_counters();
 }
