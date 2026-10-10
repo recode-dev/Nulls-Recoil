@@ -69,17 +69,19 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_TAU 6.28318531f
 #define RCL_MS_PER_S 1000.0f
 #define RCL_AD_COMMIT_S 0.30f
+#define RCL_AD_HOLD_TAN 0.12f
 #define RCL_AD_REACH_MIN 140.0f
 #define RCL_AD_REACH_MAX 520.0f
 #define RCL_DODGE_PROBE_MS 120
 #define RCL_BDC_LEAD_S 1.0f
+#define RCL_BDC_MISS_K 1.6f
 #define RCL_AD_WALL_BODY 240.0f
 #define RCL_AD_TICK_MS 16.0f
 #define RCL_AD_TICK_MAX_MS 250.0f
 #define RCL_AD_MINE_SPAWN 220.0f
 #define RCL_AD_DT_MIN 4.0f
 #define RCL_BDC_SWITCH_MARGIN (RCL_BDC_GAP_W * 6.0f)
-#define RCL_BDC_GAIN_MIN 5.0f
+#define RCL_BDC_GAIN_MIN 0.0f
 #define RCL_BDC_REFINE_STEP 0.5f
 #define RCL_BDC_REFINE_MIN 0.02f
 #define RCL_BDC_ALONG_BACK 50.0f
@@ -836,16 +838,39 @@ static void rcl_ad_clamp_target(float *tx, float *ty)
     *ty = rcl_ad_clamp_to_map(*ty, h);
 }
 
+static float rcl_ad_sent_x = 0.0f;
+static float rcl_ad_sent_y = 0.0f;
+static int rcl_ad_sent_on = 0;
+
 static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 {
     int32_t ex;
     int32_t ey;
+    float reach;
+    float hx;
+    float hy;
 
     if (!isfinite(tx) || !isfinite(ty))
     {
         return 0;
     }
     rcl_ad_clamp_target(&tx, &ty);
+    hx = tx - mx;
+    hy = ty - my;
+    reach = sqrtf(hx * hx + hy * hy) * RCL_AD_HOLD_TAN;
+    if (rcl_ad_sent_on)
+    {
+        float dx = tx - rcl_ad_sent_x;
+        float dy = ty - rcl_ad_sent_y;
+        if (dx * dx + dy * dy < reach * reach)
+        {
+            tx = rcl_ad_sent_x;
+            ty = rcl_ad_sent_y;
+        }
+    }
+    rcl_ad_sent_x = tx;
+    rcl_ad_sent_y = ty;
+    rcl_ad_sent_on = 1;
     ex = (int32_t)tx;
     ey = (int32_t)ty;
     rcl_move_to(ex, ey, mx, my);
@@ -861,7 +886,6 @@ static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 #define RCL_BDC_DANGER_R 1.75f
 #define RCL_BDC_CLEAR_FAR 2000.0f
 #define RCL_BDC_SEL_MAX 12
-#define RCL_BDC_CLOSE_D2 700.0f
 
 static int rcl_bdc_sel[RCL_BD_THREAT_MAX];
 static int rcl_bdc_sel_n = 0;
@@ -1042,6 +1066,7 @@ static int rcl_bdc_relevant(const rcl_bd_threat_t *p, float mx, float my, int ai
     float dy = p->y - my;
     float d2 = dx * dx + dy * dy;
     float lead;
+    float keep;
     if (!rcl_wall_los(p->x, p->y, mx, my, RCL_WALL_BLOCKS_PROJECTILES))
     {
         return 0;
@@ -1051,11 +1076,12 @@ static int rcl_bdc_relevant(const rcl_bd_threat_t *p, float mx, float my, int ai
         return 1;
     }
     lead = sqrtf(p->vx * p->vx + p->vy * p->vy) * RCL_BDC_LEAD_S;
-    if (lead < RCL_BDC_CLOSE_D2)
+    if (d2 > lead * lead)
     {
-        lead = RCL_BDC_CLOSE_D2;
+        return 0;
     }
-    return d2 <= lead * lead;
+    keep = (p->hitr > 0.0f ? p->hitr : p->rad) * RCL_BDC_MISS_K;
+    return rcl_bd_impact_d2(p, mx, my, nullptr) <= keep * keep;
 }
 
 static void rcl_bdc_sel_trim(int *sel, int *n, float mx, float my)
