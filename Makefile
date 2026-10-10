@@ -12,10 +12,9 @@ Recoil_FILES += $(shell find $(RECOIL)/recoil_hook -name "*.c" -o -name "*.mm" 2
 
 COMMON_INCLUDES = \
 	-Isrc \
-	-Iinclude \
 	-I$(RECOIL)/recoil_hook
 
-Recoil_CFLAGS = -Iinclude -Isrc -I$(RECOIL)/recoil_hook
+Recoil_CFLAGS = -Isrc -I$(RECOIL)/recoil_hook
 
 Recoil_OBJCFLAGS = -fobjc-arc -std=c++17 $(COMMON_INCLUDES) \
 	-Wno-unused-function -Wno-unused-variable -Wno-unused-parameter \
