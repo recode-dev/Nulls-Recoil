@@ -2448,22 +2448,18 @@ void rcl_run_workload(void)
             }
         }
     }
-    rcl_run_autododge(0);
+    rcl_run_autododge();
     rcl_run_autoaim();
     rcl_run_assist();
 }
 
-void rcl_run_autododge(int from_update)
+void rcl_run_autododge(void)
 {
     if (!rcl_flag_state("autododge"))
     {
         return;
     }
     if (rcl_in_move)
-    {
-        return;
-    }
-    if (!RCL_MOVE_FROM_UPDATE && from_update)
     {
         return;
     }

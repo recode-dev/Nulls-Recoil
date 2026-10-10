@@ -31,7 +31,7 @@ float rcl_rad_est = 0.0f;
 
 float rcl_own_r = 0.0f;
 
-#define RCL_DODGE_CHAR_SPEED 720.0f
+#define RCL_DODGE_CHAR_SPEED 1440.0f
 #define RCL_DODGE_SPEED_MIN 300
 #define RCL_DODGE_SPEED_MAX 8500
 
@@ -74,10 +74,7 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_TICK_MS 16.0f
 #define RCL_AD_TICK_MAX_MS 250.0f
 #define RCL_AD_MINE_SPAWN 220.0f
-#define RCL_AD_ARRIVE 48.0f
-#define RCL_AD_COMMIT_MS 220
-#define RCL_AD_HOLD_TAN 0.30f
-#define RCL_AD_SEND_MS 50
+#define RCL_AD_DT_MIN 4.0f
 #define RCL_BDC_SWITCH_MARGIN (RCL_BDC_GAP_W * 14.0f)
 #define RCL_BDC_GAIN_MIN 30.0f
 #define RCL_BDC_REFINE_STEP 0.5f
@@ -836,55 +833,19 @@ static void rcl_ad_clamp_target(float *tx, float *ty)
     *ty = rcl_ad_clamp_to_map(*ty, h);
 }
 
-static float rcl_ad_sent_x = 0.0f;
-static float rcl_ad_sent_y = 0.0f;
-static uint64_t rcl_ad_sent_ms = 0;
-static uint64_t rcl_ad_enq_ms = 0;
-static int rcl_ad_sent_on = 0;
-
 static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 {
     int32_t ex;
     int32_t ey;
-    uint64_t now;
-    int keep = 0;
 
     if (!isfinite(tx) || !isfinite(ty))
     {
         return 0;
     }
     rcl_ad_clamp_target(&tx, &ty);
-    now = rcl_ad_now_ms();
-    if (rcl_ad_sent_on)
-    {
-        float hx = rcl_ad_sent_x - mx;
-        float hy = rcl_ad_sent_y - my;
-        float nx = tx - mx;
-        float ny = ty - my;
-        float dot = hx * nx + hy * ny;
-        float cross = hx * ny - hy * nx;
-        if (hx * hx + hy * hy > RCL_AD_ARRIVE * RCL_AD_ARRIVE &&
-            now - rcl_ad_sent_ms < RCL_AD_COMMIT_MS && dot > 0.0f &&
-            cross * cross < RCL_AD_HOLD_TAN * RCL_AD_HOLD_TAN * dot * dot)
-        {
-            keep = 1;
-        }
-    }
-    if (!keep)
-    {
-        rcl_ad_sent_x = tx;
-        rcl_ad_sent_y = ty;
-        rcl_ad_sent_ms = now;
-        rcl_ad_sent_on = 1;
-    }
-    ex = (int32_t)rcl_ad_sent_x;
-    ey = (int32_t)rcl_ad_sent_y;
+    ex = (int32_t)tx;
+    ey = (int32_t)ty;
     rcl_move_to(ex, ey, mx, my);
-    if (keep && now - rcl_ad_enq_ms < RCL_AD_SEND_MS)
-    {
-        return 0;
-    }
-    rcl_ad_enq_ms = now;
     return rcl_enqueue(ex, ey);
 }
 
@@ -1228,7 +1189,7 @@ static int rcl_ad_update(float mx, float my)
     myRadius = rcl_own_radius();
     if (speed <= 0.0f)
     {
-        speed = 720.0f;
+        speed = RCL_DODGE_CHAR_SPEED;
     }
     if (myRadius <= 0.0f)
     {
@@ -1429,7 +1390,7 @@ int rcl_proj_vel(const rcl_proj_t *p, float *vxOut, float *vyOut)
         return 0;
     }
     dt = (float)(p->qms - p->pms);
-    if (dt < RCL_AD_TICK_MS || dt > RCL_AD_TICK_MAX_MS)
+    if (dt < RCL_AD_DT_MIN || dt > RCL_AD_TICK_MAX_MS)
     {
         dt = RCL_AD_TICK_MS;
     }

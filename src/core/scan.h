@@ -556,11 +556,10 @@ int rcl_vtable_is_data(uintptr_t vtable);
 
 void rcl_run_workload(void);
 void setup(void);
-void rcl_run_autododge(int from_update);
+void rcl_run_autododge(void);
 
 #define RCL_WIRE_OWNER 1
 #define RCL_HOPCHOSEN_DIRECT 2
-#define RCL_MOVE_FROM_UPDATE 0
 #define RCL_ARRAY_VOTE_LOGS 8
 #define RCL_HB_TICKS 5
 #define RCL_QUIET_SECS 10
