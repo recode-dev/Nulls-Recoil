@@ -18,6 +18,6 @@ Recoil_OBJCFLAGS := -fobjc-arc -std=c++17 $(RECOIL_WARNING_FLAGS) $(RECOIL_INCLU
 
 Recoil_LDFLAGS := -Wl,-undefined,dynamic_lookup
 
-Recoil_FRAMEWORKS := Foundation UIKit
+Recoil_FRAMEWORKS := Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
