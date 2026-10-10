@@ -1354,7 +1354,7 @@ void rcl_autododge(void)
             if (resolved)
             {
                 int loud = (changed || managerChanged || !rcl_probe_done);
-                rcl_probe((uintptr_t)resolved, rcl_scene_object, loud);
+                rcl_probe((uintptr_t)resolved, rcl_scene_object);
                 if (loud)
                 {
                     rcl_discriminate((uintptr_t)resolved);

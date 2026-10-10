@@ -3953,7 +3953,7 @@ uintptr_t rcl_coord_y_off(void)
 
 rcl_trail_t rcl_trail[8];
 
-void rcl_probe(uintptr_t manager, uintptr_t mode, int verbose)
+void rcl_probe(uintptr_t manager, uintptr_t mode)
 {
     rcl_obj_t objects[64];
     int usable = 0;
