@@ -4,7 +4,7 @@
 #include "../core/offsets.h"
 #include "../helpers/dodge_kinds.h"
 
-extern __thread int rcl_in_drive;
+extern __thread int rcl_in_move;
 extern int32_t rcl_pl_mine[12];
 
 extern int rcl_cand_now[3];

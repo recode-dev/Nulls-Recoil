@@ -560,7 +560,7 @@ void rcl_run_autododge(int from_update);
 
 #define RCL_WIRE_OWNER 1
 #define RCL_HOPCHOSEN_DIRECT 2
-#define RCL_DRIVE_FROM_UPDATE 0
+#define RCL_MOVE_FROM_UPDATE 0
 #define RCL_ARRAY_VOTE_LOGS 8
 #define RCL_HB_TICKS 5
 #define RCL_QUIET_SECS 10

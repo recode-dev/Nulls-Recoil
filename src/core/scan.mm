@@ -2459,17 +2459,17 @@ void rcl_run_autododge(int from_update)
     {
         return;
     }
-    if (rcl_in_drive)
+    if (rcl_in_move)
     {
         return;
     }
-    if (!RCL_DRIVE_FROM_UPDATE && from_update)
+    if (!RCL_MOVE_FROM_UPDATE && from_update)
     {
         return;
     }
-    rcl_in_drive = 1;
+    rcl_in_move = 1;
     rcl_autododge();
-    rcl_in_drive = 0;
+    rcl_in_move = 0;
 }
 
 static uint64_t rcl_work_us = 0;

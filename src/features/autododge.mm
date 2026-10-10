@@ -2,7 +2,7 @@
 
 #define RCL_WALK_EVERY 1
 
-__thread int rcl_in_drive = 0;
+__thread int rcl_in_move = 0;
 
 int32_t rcl_pl_mine[12];
 
