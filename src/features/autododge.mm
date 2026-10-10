@@ -22,11 +22,7 @@ int rcl_cal_n = 0;
 
 int rcl_ok(float v, float lo, float hi)
 {
-    if (v < lo || v > hi)
-    {
-        return 0;
-    }
-    return 1;
+    return (v >= lo && v <= hi) ? 1 : 0;
 }
 
 int rcl_rad_off = -1;
@@ -71,6 +67,7 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_SKIN 50.0f
 #define RCL_PI 3.14159265f
 #define RCL_TAU 6.28318531f
+#define RCL_MS_PER_S 1000.0f
 #define RCL_AD_REACH 240.0f
 #define RCL_AD_REACH_MIN 140.0f
 #define RCL_AD_WALL_BODY 240.0f
@@ -82,6 +79,9 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_BDC_GAIN_MIN 30.0f
 #define RCL_BDC_REFINE_STEP 0.5f
 #define RCL_BDC_REFINE_MIN 0.02f
+#define RCL_BDC_ALONG_BACK 50.0f
+#define RCL_BDC_REACH_K 0.85f
+#define RCL_BDC_THROWER_STICK 420.0f
 
 typedef struct
 {
@@ -162,7 +162,7 @@ static void rcl_ad_build_ring(void)
     }
     for (i = 0; i < RCL_AD_DIR_COUNT; i++)
     {
-        float a = 6.283185307179586f * (float)i / (float)RCL_AD_DIR_COUNT;
+        float a = RCL_TAU * (float)i / (float)RCL_AD_DIR_COUNT;
         rcl_ad_ring[i][0] = cosf(a);
         rcl_ad_ring[i][1] = sinf(a);
     }
@@ -434,7 +434,7 @@ static float rcl_ad_life_left(const rcl_proj_t *p, const rcl_kind_t *spec, float
         {
             age = 0.0f;
         }
-        left = maxR * (1.0f - age / 1000.0f);
+        left = maxR * (1.0f - age / RCL_MS_PER_S);
         return left > 0.0f ? left : 0.0f;
     }
     if (spec && (spec->flags & RCL_K_HOME) && rcl_ad_home_pos(p, &homeX, &homeY))
@@ -495,7 +495,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
         for (c = 0; c < shaped; c++)
         {
             const rcl_hazard_t *cap = &rcl_ad_caps[c];
-            float until = (cap->t1 - (float)nowMs) / 1000.0f;
+            float until = (cap->t1 - (float)nowMs) / RCL_MS_PER_S;
             rcl_ad_hazard_t *h = nullptr;
             if (until <= 0.0f)
             {
@@ -599,7 +599,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
         if (!blob && spd >= 1.0f)
         {
             playerAlong = (mx - (float)p->x) * ux + (my - (float)p->y) * uy;
-            if (playerAlong < -50.0f)
+            if (playerAlong < -RCL_BDC_ALONG_BACK)
             {
                 continue;
             }
@@ -621,7 +621,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             continue;
         }
         gap = sqrtf(dx * dx + dy * dy) - bodyR - shotR;
-        if (left < 0.85f * (gap > 0.0f ? gap : 0.0f))
+        if (left < RCL_BDC_REACH_K * (gap > 0.0f ? gap : 0.0f))
         {
             continue;
         }
@@ -725,7 +725,7 @@ static void rcl_bd_build_threats(void)
             continue;
         }
         rcl_ad_fade_vel(h, 0.0f, &vx, &vy);
-        if (h->thrower && h->left > 0.0f && h->left < 420.0f)
+        if (h->thrower && h->left > 0.0f && h->left < RCL_BDC_THROWER_STICK)
         {
             rcl_bd_push_style(h->x, h->y, 0.0f, 0.0f, h->rad, h->hitr, 1, h->style, h->left,
                               h->boom);
@@ -854,10 +854,10 @@ static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 
 #define RCL_BDC_WALL_BAND 170.0f
 #define RCL_BDC_WALL_W 2000.0f
-#define RCL_BDC_CLEAR_T 0.6f
+#define RCL_BDC_CLEAR_T 1.5f
 #define RCL_BDC_GAP_TARGET 240.0f
 #define RCL_BDC_GAP_W 3750.0f
-#define RCL_BDC_INTENT_MARGIN 40.0f
+#define RCL_BDC_INTENT_MARGIN (RCL_BDC_GAP_W * 8.0f)
 #define RCL_BDC_DANGER_R 1.75f
 #define RCL_BDC_CLEAR_FAR 2000.0f
 #define RCL_BDC_SEL_MAX 12
@@ -1013,12 +1013,7 @@ static float rcl_bdc_clearance(float dx, float dy, float mx, float my, float spe
 static float rcl_bdc_gap_cost(float dx, float dy, float mx, float my, float speed, float myR)
 {
     float gap = rcl_bdc_clearance(dx, dy, mx, my, speed, myR);
-    float room = RCL_BDC_GAP_TARGET - gap;
-    if (room < 0.0f)
-    {
-        room = 0.0f;
-    }
-    return room * RCL_BDC_GAP_W;
+    return (RCL_BDC_GAP_TARGET - gap) * RCL_BDC_GAP_W;
 }
 
 static float rcl_bdc_dir_score(float dx, float dy, float mx, float my, float myR, float speed)
