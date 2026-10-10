@@ -3715,6 +3715,14 @@ void rcl_death_signals(uintptr_t ownElem, int32_t, int32_t)
     {
         ctrlAlive = -1;
     }
+    if (dead > 0 || ownAlive == 0)
+    {
+        rcl_dead = 1;
+    }
+    else if (dead == 0 && ownAlive == 1)
+    {
+        rcl_dead = 0;
+    }
     if (dead == lastDead && ownAlive == lastOwnAlive && ctrlAlive == lastCtrlAlive)
     {
         return;

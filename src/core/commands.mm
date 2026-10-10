@@ -107,7 +107,7 @@ int rcl_enqueue_skill(int x, int y, int type, void *skillData)
     void *battle = nullptr;
     void *mgr = nullptr;
     void *msg = nullptr;
-    if (!rcl_coord_ok)
+    if (!rcl_coord_ok || rcl_dead)
     {
         return 0;
     }
@@ -455,7 +455,7 @@ int rcl_move_to(int32_t x, int32_t y, float ox, float oy)
     uint8_t moving = 1;
     (void)ox;
     (void)oy;
-    if (!RCL_MOVE_ON)
+    if (!RCL_MOVE_ON || rcl_dead)
     {
         return 0;
     }
@@ -477,6 +477,14 @@ int rcl_move_to(int32_t x, int32_t y, float ox, float oy)
     if (own && !rcl_move_pair_ok(own, nullptr, nullptr))
     {
         own = 0;
+    }
+    if (own)
+    {
+        uint8_t deadByte = 0;
+        if (rcl_read_bytes(own + (uintptr_t)RCL_DEAD_OFF, &deadByte, sizeof(deadByte)) && deadByte)
+        {
+            own = 0;
+        }
     }
     if (!own && !ctrl)
     {
