@@ -65,11 +65,11 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_FALLBACK_RANGE 2800.0f
 #define RCL_AD_DIR_COUNT 64
 #define RCL_AD_SKIN 50.0f
-#define RCL_PI 3.14159265f
 #define RCL_TAU 6.28318531f
 #define RCL_MS_PER_S 1000.0f
 #define RCL_AD_COMMIT_S 0.30f
 #define RCL_AD_HOLD_TAN 0.12f
+#define RCL_AD_DIR_MIN 24.0f
 #define RCL_AD_REACH_MIN 140.0f
 #define RCL_AD_REACH_MAX 520.0f
 #define RCL_DODGE_PROBE_MS 120
@@ -585,6 +585,19 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             }
         }
         spd = sqrtf(vx * vx + vy * vy);
+        if (spd < 1.0f && (p->spawnX || p->spawnY))
+        {
+            float sx = (float)p->x - (float)p->spawnX;
+            float sy = (float)p->y - (float)p->spawnY;
+            float slen = sqrtf(sx * sx + sy * sy);
+            float age = (float)nowMs - (float)p->spawnedAt;
+            if (slen > RCL_AD_DIR_MIN && age > 1.0f && age < 5000.0f)
+            {
+                spd = slen / (age / RCL_MS_PER_S);
+                vx = sx / slen * spd;
+                vy = sy / slen * spd;
+            }
+        }
         if (spec && spec->speedMul > 0.0f && spd > 3500.0f)
         {
             vx *= spec->speedMul;
@@ -1060,7 +1073,33 @@ static void rcl_bd_refine(float mx, float my, float myR, float speed, float dx, 
     *oy = sinf(a);
 }
 
-static int rcl_bdc_relevant(const rcl_bd_threat_t *p, float mx, float my, int aimed)
+static float rcl_bd_miss_d2(const rcl_bd_threat_t *p, float mx, float my)
+{
+    float px = p->x - mx;
+    float py = p->y - my;
+    float a = p->vx * p->vx + p->vy * p->vy;
+    float b;
+    float tm;
+    if (a <= 0.000001f)
+    {
+        return px * px + py * py;
+    }
+    b = 2.0f * (px * p->vx + py * p->vy);
+    tm = -b / (2.0f * a);
+    if (tm < 0.0f)
+    {
+        return px * px + py * py;
+    }
+    return px * px + py * py + b * tm + a * tm * tm;
+}
+
+static int rcl_bdc_will_hit(const rcl_bd_threat_t *p, float mx, float my, float myR)
+{
+    float r = (rcl_bd_true_r(p, myR) * RCL_BDC_TRUE_GATE + RCL_BD_TRUE_MARGIN) * RCL_BDC_HIT_GATE;
+    return rcl_bd_miss_d2(p, mx, my) <= r * r;
+}
+
+static int rcl_bdc_relevant(const rcl_bd_threat_t *p, float mx, float my, float myR, int aimed)
 {
     float dx = p->x - mx;
     float dy = p->y - my;
@@ -1071,9 +1110,13 @@ static int rcl_bdc_relevant(const rcl_bd_threat_t *p, float mx, float my, int ai
     {
         return 0;
     }
-    if (aimed)
+    if (rcl_bdc_will_hit(p, mx, my, myR))
     {
         return 1;
+    }
+    if (!aimed)
+    {
+        return 0;
     }
     lead = sqrtf(p->vx * p->vx + p->vy * p->vy) * RCL_BDC_LEAD_S;
     if (d2 > lead * lead)
@@ -1126,7 +1169,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     for (i = 0; i < rcl_bd_threat_n; i++)
     {
         int aimed = rcl_bdc_aimed_one(&rcl_bd_threats[i], mx, my, myR);
-        if (rcl_bdc_relevant(&rcl_bd_threats[i], mx, my, aimed))
+        if (rcl_bdc_relevant(&rcl_bd_threats[i], mx, my, myR, aimed))
         {
             if (aimed)
             {
@@ -1157,7 +1200,8 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     if (rcl_bdc_have_last)
     {
         float hs = rcl_bdc_dir_score(rcl_bdc_last_x, rcl_bdc_last_y, mx, my, myR, speed);
-        if (hs <= bs + RCL_BDC_SWITCH_MARGIN)
+        float margin = hs <= 0.0f ? RCL_BDC_SWITCH_MARGIN * 4.0f : RCL_BDC_SWITCH_MARGIN;
+        if (hs <= bs + margin)
         {
             bx = rcl_bdc_last_x;
             by = rcl_bdc_last_y;
