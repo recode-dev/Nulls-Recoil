@@ -17,7 +17,6 @@ typedef struct
     const char *code;
     int16_t shotSpeed;
     int16_t range;
-    int16_t flightMs;
     float ahead;
     uint8_t flags;
 } rcl_aim_ahead_t;
