@@ -1373,13 +1373,13 @@ void rcl_autododge(void)
         const char *ownFrom = "none";
         if (!rcl_own_latch(objects, usable, &ownIndex, &ownFrom) &&
             !rcl_resolve_own(objects, usable, &ownIndex, &ownFrom) &&
-            !rcl_resolve_own_2(objects, usable, &ownIndex, &ownFrom))
+            !rcl_resolve_own_fallback(objects, usable, &ownIndex, &ownFrom))
         {
             return;
         }
         rcl_publish_own(objects[ownIndex].object, ownFrom);
     }
-    rcl_own_elem_2 = objects[ownIndex].object;
+    rcl_own_elem_scan = objects[ownIndex].object;
     ownTeam = (rcl_team_off == (int)RCL_OBJ_TEAM_OFF) ? objects[ownIndex].teamOld : objects[ownIndex].teamNew;
     ownX = objects[ownIndex].x;
     ownY = objects[ownIndex].y;
@@ -1396,7 +1396,7 @@ void rcl_autododge(void)
         {
             rcl_own_team_seen = 1;
         }
-        rcl_roster(rcl_own_elem_2, ownIndex, (int)ownTeam, objects, usable);
+        rcl_roster(rcl_own_elem_scan, ownIndex, (int)ownTeam, objects, usable);
         if (ownIndex < 0 || ownIndex >= usable || ownIndex >= 64)
         {
             return;

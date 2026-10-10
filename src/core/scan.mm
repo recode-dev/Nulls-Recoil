@@ -672,61 +672,6 @@ const char *rcl_image_segment_name(uintptr_t value)
     return nullptr;
 }
 
-rcl_region_t rcl_heap_regions[512];
-
-int rcl_heap_region_count = 0;
-
-uintptr_t rcl_heap_window_low = 0;
-
-uintptr_t rcl_heap_window_high = 0;
-
-void rcl_heap_regions_refresh(void)
-{
-    uintptr_t cursor = 0x10000;
-    uintptr_t lowest = 0;
-    uintptr_t highest = 0;
-    int count = 0;
-    for (int guard = 0; guard < 8192 && count < 512; guard++)
-    {
-        vm_prot_t protection = 0;
-        mach_vm_size_t size = 0;
-        uintptr_t start = 0;
-        uintptr_t next = 0;
-        if (!rcl_query_region(cursor, &protection, nullptr, &size, &start))
-        {
-            break;
-        }
-        if (size == 0)
-        {
-            break;
-        }
-        next = start + (uintptr_t)size;
-        if (next <= cursor)
-        {
-            break;
-        }
-        if ((protection & VM_PROT_WRITE) && size <= RCL_HEAP_REGION_MAX_SIZE && start >= 0x10000 &&
-            !rcl_image_segment_name(start))
-        {
-            rcl_heap_regions[count].low = start;
-            rcl_heap_regions[count].high = next;
-            count++;
-            if (!lowest || start < lowest)
-            {
-                lowest = start;
-            }
-            if (next > highest)
-            {
-                highest = next;
-            }
-        }
-        cursor = next;
-    }
-    rcl_heap_region_count = count;
-    rcl_heap_window_low = lowest;
-    rcl_heap_window_high = highest;
-    rcl_image_span_refresh();
-}
 BOOL rcl_vtable_shaped(uintptr_t value)
 {
     const char *segment = rcl_image_segment_name(value);
@@ -1076,7 +1021,7 @@ float rcl_as_float(uint32_t bits)
 void rcl_discriminate(uintptr_t manager)
 {
     rcl_obj_t objects[64];
-    uint32_t words[RCL_ELEMS][RCL_WORDS_2];
+    uint32_t words[RCL_ELEMS][RCL_ELEM_WORDS];
     int usable = 0;
     int n = 0;
     int teamOff = -1;
@@ -1102,7 +1047,7 @@ void rcl_discriminate(uintptr_t manager)
             return;
         }
     }
-    for (int w = 0; w < RCL_WORDS_2; w++)
+    for (int w = 0; w < RCL_ELEM_WORDS; w++)
     {
         int distinct = 0;
         int allSmall = 1;
@@ -1165,14 +1110,14 @@ void rcl_discriminate(uintptr_t manager)
         teamOff = -1;
     }
     {
-        int order[RCL_WORDS_2];
+        int order[RCL_ELEM_WORDS];
         int orderCount = 0;
         int defaultWord = (int)(RCL_OBJ_X_OFF / 4);
-        if (defaultWord >= 0 && defaultWord + 1 < RCL_WORDS_2)
+        if (defaultWord >= 0 && defaultWord + 1 < RCL_ELEM_WORDS)
         {
             order[orderCount++] = defaultWord;
         }
-        for (int w = 0; w + 1 < RCL_WORDS_2; w++)
+        for (int w = 0; w + 1 < RCL_ELEM_WORDS; w++)
         {
             if (w != defaultWord)
             {
@@ -1234,7 +1179,7 @@ void rcl_discriminate(uintptr_t manager)
             }
         }
     }
-    for (int w = 0; w + 1 < RCL_WORDS_2 && floatPairOff < 0; w++)
+    for (int w = 0; w + 1 < RCL_ELEM_WORDS && floatPairOff < 0; w++)
     {
         int ok = 1;
         int anyNonZero = 0;
@@ -1641,7 +1586,7 @@ unsigned long long rcl_obj_prev = 0;
 
 uintptr_t rcl_site = 0;
 
-int rcl_state_2 = -1;
+int rcl_site_state = -1;
 
 int rcl_scan_armed = -1;
 
@@ -2267,11 +2212,11 @@ int rcl_state_tick(void)
     {
         rcl_read_int(slot + RCL_STATE_ENUM_OFF, &state);
     }
-    if (slot != rcl_site || state != rcl_state_2)
+    if (slot != rcl_site || state != rcl_site_state)
     {
         rcl_state_note(state);
         rcl_site = slot;
-        rcl_state_2 = state;
+        rcl_site_state = state;
     }
     if (!slot)
     {
@@ -2391,7 +2336,7 @@ int rcl_scan_allowed(uint64_t fired, uint64_t)
     return 1;
 }
 
-int rcl_battle_gate_2(int v63)
+int rcl_battle_gate_fallback(int v63)
 {
     int liveEnough = (rcl_live_objs >= RCL_LIVE_OBJ_MIN && rcl_live_teams >= RCL_LIVE_TEAM_MIN);
     rcl_fb_on = (v63 || liveEnough) ? 1 : 0;
@@ -2426,7 +2371,7 @@ void rcl_start_timer(void)
         int scene = rcl_state_tick();
         int gate = rcl_battle_gate(scene);
         int battle = gate || scene;
-        int fallback = rcl_battle_gate_2(battle);
+        int fallback = rcl_battle_gate_fallback(battle);
         int ready = rcl_scan_ready(battle || fallback);
         int needScan = !scene && !rcl_players_object;
         if (needScan != rcl_scan_armed)
@@ -2633,7 +2578,7 @@ void rcl_modesig_tick(void)
     {
         return;
     }
-    if (!rcl_battle_active && (rcl_ticks_b % RCL_BUCKET_TICKS_2) != 0)
+    if (!rcl_battle_active && (rcl_ticks_b % RCL_QUIET_BUCKET_TICKS) != 0)
     {
         return;
     }
@@ -2970,7 +2915,7 @@ int rcl_scan_ready(int battle)
     {
         return 0;
     }
-    return (rcl_ticks_b % RCL_BUCKET_TICKS_2) == 0;
+    return (rcl_ticks_b % RCL_QUIET_BUCKET_TICKS) == 0;
 }
 
 void rcl_resolve_addresses(void)
@@ -3009,11 +2954,11 @@ void rcl_locate_battle_mode(void)
     rcl_votescan_attempts++;
     if (rcl_votescan_attempts == 1)
     {
-        rcl_heap_regions_refresh();
+        rcl_image_span_refresh();
     }
     if ((rcl_votescan_attempts % RCL_VOTESCAN_GLOBAL_EVERY) == 1)
     {
-        rcl_heap_regions_refresh();
+        rcl_image_span_refresh();
     }
 }
 
@@ -3789,7 +3734,7 @@ void rcl_alive(int32_t, int32_t)
     rcl_dead = 0;
 }
 
-uint64_t rcl_word_2(uintptr_t address)
+uint64_t rcl_read_u64(uintptr_t address)
 {
     uint64_t value = 0;
     if (!rcl_read_bytes(address, &value, sizeof(value)))
@@ -4222,7 +4167,7 @@ int rcl_own_from_slot(uintptr_t *objectOut, int32_t *gidOut)
         {
             continue;
         }
-        if (!rcl_read_int(hop[k] + RCL_OWNIDX_OFF_2, &idx))
+        if (!rcl_read_int(hop[k] + RCL_OWNIDX_OFF, &idx))
         {
             continue;
         }
@@ -4266,7 +4211,7 @@ uintptr_t rcl_players_array = 0;
 
 int rcl_players_count = 0;
 
-uintptr_t rcl_own_elem_2 = 0;
+uintptr_t rcl_own_elem_scan = 0;
 
 int rcl_state_code = RCL_STATE_INIT;
 
@@ -4789,11 +4734,11 @@ void rcl_own_probe(void)
         {
             count = 0;
         }
-        if (!rcl_read_int(cand[b] + RCL_OWNIDX_OFF_2, &idx))
+        if (!rcl_read_int(cand[b] + RCL_OWNIDX_OFF, &idx))
         {
             idx = -1;
         }
-        if (!rcl_read_int(cand[b] + RCL_OWNTEAM_OFF_2, &team))
+        if (!rcl_read_int(cand[b] + RCL_OWNTEAM_OFF, &team))
         {
             team = -1;
         }
@@ -4801,8 +4746,8 @@ void rcl_own_probe(void)
         {
             if (rcl_read_ptr((uintptr_t)array + (uintptr_t)idx * 8ULL, &elem) && elem)
             {
-                if (rcl_read_int((uintptr_t)elem + RCL_ELEM_ID_OFF_2, &eid) &&
-                    rcl_read_int((uintptr_t)elem + RCL_ELEM_TEAM_OFF_2, &eteam))
+                if (rcl_read_int((uintptr_t)elem + RCL_ELEM_ID_OFF, &eid) &&
+                    rcl_read_int((uintptr_t)elem + RCL_ELEM_TEAM_OFF, &eteam))
                 {
                     elemGid = rcl_gid((uintptr_t)elem, &gidOff);
                     if (eid == idx && eid != 0)
@@ -4850,13 +4795,13 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
     {
         *fromOut = "none";
     }
-    if (!objects || usable <= 0 || !rcl_own_elem_2)
+    if (!objects || usable <= 0 || !rcl_own_elem_scan)
     {
         return 0;
     }
     for (i = 0; i < usable; i++)
     {
-        if (objects[i].object != rcl_own_elem_2)
+        if (objects[i].object != rcl_own_elem_scan)
         {
             continue;
         }
@@ -5035,7 +4980,7 @@ int rcl_own_scan(void)
         for (int i = 0; i < RCL_SCAN_QWORDS; i++)
         {
             uintptr_t off = (uintptr_t)i * 8ULL;
-            uintptr_t value = (uintptr_t)rcl_word_2(bases[b] + off);
+            uintptr_t value = (uintptr_t)rcl_read_u64(bases[b] + off);
             uintptr_t index = 0;
             if (!value)
             {
@@ -5069,7 +5014,7 @@ int rcl_own_scan(void)
     return found;
 }
 
-int rcl_resolve_own_2(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut)
+int rcl_resolve_own_fallback(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut)
 {
     if (indexOut)
     {
@@ -5125,7 +5070,7 @@ int rcl_resolve_own_2(const rcl_obj_t *objects, int usable, int *indexOut, const
 
 int rcl_own(int32_t *xOut, int32_t *yOut)
 {
-    uintptr_t own = rcl_own_elem_2;
+    uintptr_t own = rcl_own_elem_scan;
     if (!own)
     {
         own = rcl_own_elem;

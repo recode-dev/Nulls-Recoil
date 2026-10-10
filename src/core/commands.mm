@@ -109,9 +109,9 @@ int rcl_enqueue_skill(int x, int y, int type, void *skillData)
     {
         return 0;
     }
-    ctorFn = rcl_entry_2(RCL_MSGCTOR_RVA);
-    inputFn = rcl_entry_2(RCL_ADDINPUT_RVA);
-    battleFn = rcl_entry_2(RCL_GETBATTLE_RVA);
+    ctorFn = rcl_entry_callable(RCL_MSGCTOR_RVA);
+    inputFn = rcl_entry_callable(RCL_ADDINPUT_RVA);
+    battleFn = rcl_entry_callable(RCL_GETBATTLE_RVA);
     if (!inputFn || !ctorFn || !battleFn)
     {
         return 0;
@@ -326,7 +326,7 @@ static uintptr_t rcl_move_carrier(void)
     return 0;
 }
 
-uintptr_t rcl_entry_2(uintptr_t rva)
+uintptr_t rcl_entry_callable(uintptr_t rva)
 {
     if (!rcl_base || !rva)
     {
@@ -362,7 +362,7 @@ static int rcl_msg_ok(void *ptr, size_t size)
 
 void *rcl_msg_alloc(void)
 {
-    uintptr_t stub = rcl_entry_2(RCL_ALLOC_RVA);
+    uintptr_t stub = rcl_entry_callable(RCL_ALLOC_RVA);
     uintptr_t got = 0;
     size_t size = (size_t)RCL_MSG_SIZE + (size_t)RCL_MSG_SLACK;
     void *mem = nullptr;
@@ -395,7 +395,7 @@ void *rcl_msg_alloc(void)
 
 void *rcl_manager(void)
 {
-    uintptr_t battleFn = rcl_entry_2(RCL_GETBATTLE_RVA);
+    uintptr_t battleFn = rcl_entry_callable(RCL_GETBATTLE_RVA);
     void *battle = nullptr;
     void *mgr = nullptr;
     if (!battleFn)
@@ -426,7 +426,7 @@ int rcl_pred_set(int x, int y)
     {
         return 0;
     }
-    setFn = rcl_entry_2(RCL_SETINPUT_RVA);
+    setFn = rcl_entry_callable(RCL_SETINPUT_RVA);
     if (!setFn)
     {
         return 0;
@@ -464,7 +464,7 @@ int rcl_move_to(int32_t x, int32_t y, float ox, float oy)
     {
         return 0;
     }
-    fn = rcl_entry_2(RCL_MOVE_RVA);
+    fn = rcl_entry_callable(RCL_MOVE_RVA);
     own = rcl_move_carrier();
     ctrl = rcl_controller();
     if (!fn)

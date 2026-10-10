@@ -12,7 +12,7 @@
 #define RCL_PRED_FLAG 1
 #define RCL_MOVE_ON 1
 
-uintptr_t rcl_entry_2(uintptr_t rva);
+uintptr_t rcl_entry_callable(uintptr_t rva);
 void *rcl_msg_alloc(void);
 void *rcl_manager(void);
 int rcl_pred_set(int x, int y);

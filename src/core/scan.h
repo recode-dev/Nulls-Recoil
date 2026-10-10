@@ -18,12 +18,6 @@ typedef uint64_t (*rcl_slot_fn_t)(void *a0, uint64_t a1, uint64_t a2, uint64_t a
 
 typedef struct
 {
-    uintptr_t low;
-    uintptr_t high;
-} rcl_region_t;
-
-typedef struct
-{
     uintptr_t manager;
     int32_t count;
     int32_t capacity;
@@ -86,13 +80,9 @@ extern int rcl_walk_count;
 extern uintptr_t rcl_owner;
 extern int rcl_wired;
 extern dispatch_source_t rcl_scan_timer;
-extern rcl_region_t rcl_heap_regions[512];
-extern int rcl_heap_region_count;
-extern uintptr_t rcl_heap_window_low;
-extern uintptr_t rcl_heap_window_high;
 extern rcl_trail_t rcl_trail[8];
 extern int rcl_trail_count;
-extern uintptr_t rcl_own_elem_2;
+extern uintptr_t rcl_own_elem_scan;
 
 BOOL rcl_query_region(uintptr_t address, vm_prot_t *protection, vm_prot_t *maxProtection, mach_vm_size_t *regionSize,
                       uintptr_t *regionStart);
@@ -115,7 +105,6 @@ BOOL find_game_image(uintptr_t *out_base);
 BOOL rcl_segment_range(const char *name, uintptr_t *lo, uintptr_t *hi);
 void rcl_image_span_refresh(void);
 const char *rcl_image_segment_name(uintptr_t value);
-void rcl_heap_regions_refresh(void);
 BOOL rcl_vtable_shaped(uintptr_t value);
 BOOL rcl_heap_resident(uintptr_t value);
 BOOL rcl_instance_shaped(uintptr_t object);
@@ -429,7 +418,7 @@ uintptr_t rcl_pair_base(void);
 #define RCL_COORD_SOFT 0
 #define RCL_NP_DUMPS 8
 #define RCL_ELEMS 8
-#define RCL_WORDS_2 24
+#define RCL_ELEM_WORDS 24
 #define RCL_VALUE_MAX 1000000
 #define RCL_FLOAT_MAX 10000.0f
 #define RCL_TEAM_MAX 8
@@ -468,7 +457,7 @@ extern uintptr_t rcl_setpred;
 extern uintptr_t rcl_site;
 extern rcl_slot_fn_t rcl_slot_orig[34];
 extern const rcl_hook_t rcl_slot_specs[34];
-extern int rcl_state_2;
+extern int rcl_site_state;
 extern uintptr_t rcl_tick_array;
 extern int32_t rcl_tick_count;
 extern uintptr_t rcl_tick_object;
@@ -558,7 +547,7 @@ extern int rcl_hb_sig_prev;
 int rcl_battle_gate(int scene);
 
 extern uint64_t rcl_ticks_b;
-int rcl_battle_gate_2(int v63);
+int rcl_battle_gate_fallback(int v63);
 int rcl_scan_allowed(uint64_t fired, uint64_t total);
 void rcl_start_timer(void);
 int rcl_state_tick(void);
@@ -640,14 +629,14 @@ int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32
 int rcl_own_from_list(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut);
 void rcl_state_note(int state);
 int rcl_own_scan(void);
-int rcl_resolve_own_2(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut);
+int rcl_resolve_own_fallback(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut);
 int rcl_proj_scan(uintptr_t manager, int32_t count);
 
 uintptr_t rcl_controller(void);
 void rcl_death_signals(uintptr_t ownElem, int32_t ownX, int32_t ownY);
 void rcl_alive(int32_t ownX, int32_t ownY);
 int rcl_own(int32_t *xOut, int32_t *yOut);
-uint64_t rcl_word_2(uintptr_t address);
+uint64_t rcl_read_u64(uintptr_t address);
 const char *rcl_header_reason(uintptr_t manager, int32_t *countOut, int32_t *capOut);
 uintptr_t rcl_coord_x_off(void);
 uintptr_t rcl_coord_y_off(void);
@@ -716,7 +705,7 @@ int rcl_team_at(const rcl_obj_t *objects, int index);
 #define RCL_COUNT_MAX 96
 #define RCL_SCAN_QWORDS 512
 #define RCL_SCAN_BASES 3
-#define RCL_BUCKET_TICKS_2 10
+#define RCL_QUIET_BUCKET_TICKS 10
 #define RCL_SCAN_FLOOR_TICKS 12
 #define RCL_SCAN_FALLBACK_TICKS 20
 #define RCL_MODESIG_TICKS 3
