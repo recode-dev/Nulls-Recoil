@@ -82,8 +82,6 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_TICK_MAX_MS 250.0f
 #define RCL_AD_MINE_SPAWN 220.0f
 #define RCL_BDC_TURN_MAX 0.60f
-#define RCL_BDC_TURN_PANIC 1.60f
-#define RCL_BDC_PANIC_MS 350.0f
 #define RCL_BDC_SWITCH_MARGIN (RCL_BDC_GAP_W * 14.0f)
 #define RCL_BDC_GAIN_MIN 30.0f
 #define RCL_BDC_REFINE_STEP 0.5f
