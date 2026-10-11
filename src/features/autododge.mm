@@ -354,35 +354,9 @@ static float rcl_ad_kind_reach(const rcl_proj_t *p, const rcl_kind_t *spec, floa
     return RCL_AD_FALLBACK_RANGE;
 }
 
-static int rcl_ad_home_pos(const rcl_proj_t *p, float *xOut, float *yOut)
-{
-    float tx = (float)p->ownerX;
-    float ty = (float)p->ownerY;
-
-    if (!rcl_ok(tx, -100000000.0f, 100000000.0f))
-    {
-        return 0;
-    }
-    if (!rcl_ok(ty, -100000000.0f, 100000000.0f))
-    {
-        return 0;
-    }
-    if (!tx && !ty)
-    {
-        return 0;
-    }
-
-    *xOut = tx;
-    *yOut = ty;
-
-    return 1;
-}
-
 static float rcl_ad_life_left(const rcl_proj_t *p, const rcl_kind_t *spec, float spd, uint64_t nowMs)
 {
     float maxR = rcl_ad_kind_reach(p, spec, spd);
-    float homeX = 0.0f;
-    float homeY = 0.0f;
     float left;
 
     if (spec && (spec->flags & RCL_K_FADE))
@@ -399,15 +373,6 @@ static float rcl_ad_life_left(const rcl_proj_t *p, const rcl_kind_t *spec, float
 
         return left > 0.0f ? left : 0.0f;
     }
-
-    if (spec && (spec->flags & RCL_K_HOME) && rcl_ad_home_pos(p, &homeX, &homeY))
-    {
-        float dx = homeX - (float)p->x;
-        float dy = homeY - (float)p->y;
-
-        return sqrtf(dx * dx + dy * dy);
-    }
-
     left = maxR - rcl_ad_traveled(p);
 
     return left > 0.0f ? left : 0.0f;

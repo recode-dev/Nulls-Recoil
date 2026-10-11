@@ -362,7 +362,7 @@ static inline BOOL rcl_object_plausible(void *object)
         return NO;
     }
     uintptr_t address = (uintptr_t)object;
-    if (address < 0x100000000ULL)
+    if (address < RCL_HEAP_REGION_MAX_SIZE)
     {
         return NO;
     }

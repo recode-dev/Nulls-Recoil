@@ -22,8 +22,6 @@ typedef struct
     const char *name;
     int32_t targetX;
     int32_t targetY;
-    int32_t ownerX;
-    int32_t ownerY;
     float radius;
     float angle;
     uint64_t spawnedAt;
@@ -45,7 +43,6 @@ typedef struct
 #define RCL_K_LOCKPATH 0x02
 #define RCL_K_DROP 0x04
 #define RCL_K_FADE 0x08
-#define RCL_K_HOME 0x10
 
 typedef struct
 {

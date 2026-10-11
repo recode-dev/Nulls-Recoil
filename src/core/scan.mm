@@ -3635,6 +3635,20 @@ int rcl_proj_scan(uintptr_t manager, int32_t count)
                 {
                     rcl_projs[slot].isThrower = indirect ? 1 : 0;
                 }
+                {
+                    uint8_t beam = 0;
+                    if (rcl_read_bytes((uintptr_t)def + (uintptr_t)OFF_PROJECTILEDATA_ISBEAM, &beam, sizeof(beam)))
+                    {
+                        rcl_projs[slot].isBeam = beam ? 1 : 0;
+                    }
+                }
+                {
+                    int32_t rad = 0;
+                    if (rcl_read_int((uintptr_t)def + (uintptr_t)OFF_PROJECTILEDATA_RADIUS, &rad) && rad > 0)
+                    {
+                        rcl_projs[slot].radius = (float)rad;
+                    }
+                }
             }
             {
                 int32_t raw = 0;
