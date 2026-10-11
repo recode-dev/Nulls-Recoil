@@ -4576,6 +4576,11 @@ int rcl_life(uintptr_t ownElem, int32_t ownX, int32_t ownY)
         {
             rcl_dead_slot = bestSlot;
             rcl_dead_value = rcl_pre[bestSlot];
+
+            if (rcl_cand_now[0] > 0 || rcl_cand_now[1] == 0)
+            {
+                rcl_dead_value = rcl_cand_now[bestSlot];
+            }
         }
     }
     if (rcl_prev_valid && rcl_own_ok(ownX, ownY) && rcl_own_ok(rcl_prev_x, rcl_prev_y))
