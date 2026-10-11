@@ -110,8 +110,6 @@ static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
 static int rcl_ad_mine_skipped = 0;
 static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
-static const char *rcl_ad_own_src = nullptr;
-static int32_t rcl_ad_own_gid_seen = 0;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
 static float rcl_ad_scores[RCL_AD_DIR_COUNT];
@@ -1187,7 +1185,7 @@ static int rcl_ad_send_move(float tx, float ty, float mx, float my)
 
 static int rcl_ad_stopping = 0;
 
-static void rcl_ad_stop(float mx, float my, const char *why)
+static void rcl_ad_stop(float mx, float my)
 {
     if (rcl_ad_stopping)
     {
@@ -1197,8 +1195,6 @@ static void rcl_ad_stop(float mx, float my, const char *why)
     rcl_ad_stopping = 1;
 
     rcl_ad_send_move(mx, my, mx, my);
-
-    rcl_log_info("dodge stop why=%s at=%.0f,%.0f", why, mx, my);
 }
 
 #define RCL_BDC_EXTRA 12
@@ -1802,14 +1798,14 @@ static int rcl_ad_update(float mx, float my)
 
     if (rcl_bd_threat_n == 0)
     {
-        rcl_ad_stop(mx, my, "clear");
+        rcl_ad_stop(mx, my);
 
         return 0;
     }
 
     if (!rcl_bd_danger(mx, my, myRadius))
     {
-        rcl_ad_stop(mx, my, "safe");
+        rcl_ad_stop(mx, my);
 
         return 0;
     }
@@ -1970,13 +1966,15 @@ void rcl_autododge(void)
 
         rcl_publish_own(objects[ownIndex].object, ownFrom);
 
-        if (rcl_ad_own_src != ownFrom || rcl_ad_own_gid_seen != rcl_own_gid)
+        if (rcl_own_gid > 0 && objects[ownIndex].gid != rcl_own_gid &&
+            !rcl_own_src_trusted(ownFrom))
         {
-            rcl_ad_own_src = ownFrom;
-            rcl_ad_own_gid_seen = rcl_own_gid;
-            rcl_own_logged = 1;
+            return;
+        }
 
-            rcl_log_info("own src=%s gid=%d", ownFrom, rcl_own_gid);
+        if (!rcl_own_logged)
+        {
+            rcl_own_logged = 1;
         }
     }
 
@@ -1985,6 +1983,11 @@ void rcl_autododge(void)
     ownTeam = (rcl_team_off == (int)RCL_OBJ_TEAM_OFF) ? objects[ownIndex].teamOld : objects[ownIndex].teamNew;
     ownX = objects[ownIndex].x;
     ownY = objects[ownIndex].y;
+
+    if (ownX == 0 && ownY == 0)
+    {
+        return;
+    }
 
     rcl_death_signals((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY);
 

@@ -567,7 +567,7 @@ void rcl_run_autododge(void);
 #define RCL_LIVE_TEAM_MIN 2
 #define RCL_IDLE_RETRY_TICKS 300
 #define RCL_SNAPSHOT_DELAY 1.2
-#define RCL_LOGS_ON 1
+#define RCL_LOGS_ON 0
 
 extern uintptr_t rcl_scene_object;
 
@@ -681,6 +681,7 @@ int rcl_own_ok(int32_t x, int32_t y);
 float rcl_own_radius(void);
 int rcl_own_side_spawn(int32_t sx, int32_t sy);
 void rcl_publish_own(uintptr_t elem, const char *from);
+int rcl_own_src_trusted(const char *from);
 int rcl_resolve_own(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut);
 void rcl_respawn_event(int32_t x, int32_t y, int32_t px, int32_t py);
 void rcl_roster(uintptr_t ownElem, int ownIndex, int ownTeam, const rcl_obj_t *objects, int usable);

@@ -12,8 +12,6 @@
 #define RCL_LOG_FLUSH_MS 100
 #define RCL_LOG_MAX_PENDING 512
 #define RCL_LOG_TEXT_MAX 128
-#define RCL_LOG_FILE_MAX 20000
-#define RCL_LOG_FILE_NAME "Recoil.log"
 
 typedef struct
 {

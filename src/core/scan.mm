@@ -2549,7 +2549,7 @@ void setup(void)
         return;
     }
     rcl_setup_done = YES;
-    rcl_log_set_enabled(RCL_LOGS_ON);
+    rcl_log_set_enabled(0);
     rcl_flag_set("logs", RCL_LOGS_ON);
     rcl_load_function_starts();
     rcl_resolve_addresses();
@@ -4206,7 +4206,7 @@ void rcl_own_index_probe(void)
     }
 }
 
-static int rcl_own_src_trusted(const char *from)
+int rcl_own_src_trusted(const char *from)
 {
     if (!from)
     {
@@ -4934,6 +4934,10 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
             return 0;
         }
         if (objects[i].teamOld < 0 || objects[i].teamOld > 15)
+        {
+            return 0;
+        }
+        if (rcl_own_gid > 0 && objects[i].gid != rcl_own_gid)
         {
             return 0;
         }
