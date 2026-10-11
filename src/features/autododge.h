@@ -17,7 +17,6 @@ extern int32_t rcl_prev_y;
 int rcl_proj_vel(const rcl_proj_t *p, float *vxOut, float *vyOut);
 void rcl_candidates(uintptr_t ownElem, int *out);
 void rcl_autododge(void);
-void rcl_offsets_probe(uintptr_t elem);
 
 extern float rcl_own_r;
 
