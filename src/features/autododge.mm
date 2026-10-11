@@ -75,6 +75,7 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_FALLBACK_RANGE 2800.0f
 #define RCL_AD_DIR_COUNT 64
 #define RCL_AD_SKIN 50.0f
+#define RCL_AD_SPAWN_MARGIN 60.0f
 #define RCL_AD_REACH 600.0f
 #define RCL_AD_WALL_BODY 240.0f
 #define RCL_AD_TICK_MS 16.0f
@@ -205,6 +206,37 @@ static int rcl_ad_is_mine(const rcl_proj_t *p)
     }
 
     return 0;
+}
+
+static int rcl_ad_my_shot(const rcl_proj_t *p, float mx, float my, float bodyR)
+{
+    float sx;
+    float sy;
+    float nx;
+    float ny;
+    float dSpawn;
+    float dNow;
+    float r;
+
+    if (!p->spawnX && !p->spawnY)
+    {
+        return 0;
+    }
+
+    sx = (float)p->spawnX - mx;
+    sy = (float)p->spawnY - my;
+    nx = (float)p->x - mx;
+    ny = (float)p->y - my;
+    dSpawn = sx * sx + sy * sy;
+    dNow = nx * nx + ny * ny;
+    r = bodyR + RCL_AD_SPAWN_MARGIN;
+
+    if (dSpawn > r * r)
+    {
+        return 0;
+    }
+
+    return dNow > dSpawn;
 }
 
 static float rcl_ad_seg_dist(float px, float py, float ax, float ay, float bx, float by)
@@ -427,6 +459,13 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
         }
 
         if (rcl_ad_is_mine(p))
+        {
+            rcl_ad_mine_skipped++;
+
+            continue;
+        }
+
+        if (rcl_ad_my_shot(p, mx, my, bodyR))
         {
             rcl_ad_mine_skipped++;
 
