@@ -1631,11 +1631,6 @@ void rcl_autododge(void)
             static const char *loggedFrom = nullptr;
             static int loggedGid = -1;
             const char *from = ownFrom ? ownFrom : "?";
-            int32_t witX = 0;
-            int32_t witY = 0;
-            int witOk = rcl_witness(&witX, &witY);
-            int engSame = (rcl_own_ptr && rcl_own_ptr == objects[ownIndex].object) ? 1 : 0;
-            int posSame = (witOk && objects[ownIndex].x == witX && objects[ownIndex].y == witY) ? 1 : 0;
 
             if (!loggedFrom || strcmp(loggedFrom, from) != 0 || loggedGid != rcl_own_gid)
             {
@@ -1645,9 +1640,6 @@ void rcl_autododge(void)
                 rcl_log_info("own src=%s gid=%d team=%d idx=%d usable=%d gidCount=%d", from, rcl_own_gid,
                              (int)ownTeam, ownIndex, usable,
                              rcl_gid_count(objects, usable, objects[ownIndex].gid));
-                rcl_log_info("own eng src=%s idx=%d same=%d wit=%d,%d ok=%d pos=%d obj=%#llx", rcl_own_from,
-                             rcl_own_index, engSame, witOk, witX, witY, posSame,
-                             (unsigned long long)objects[ownIndex].object);
             }
 
             rcl_own_logged = 1;
