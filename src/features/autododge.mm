@@ -91,6 +91,7 @@ typedef struct
     float vx;
     float vy;
     float rad;
+    float hitr;
     float age;
     float fade_base;
     float fade_k;
@@ -109,6 +110,8 @@ static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
 static int rcl_ad_mine_skipped = 0;
 static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
+static const char *rcl_ad_own_src = nullptr;
+static int32_t rcl_ad_own_gid_seen = 0;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
 static float rcl_ad_scores[RCL_AD_DIR_COUNT];
@@ -116,6 +119,8 @@ static int rcl_ad_dir_built = 0;
 static int rcl_ad_hazard_n = 0;
 
 #define RCL_BD_SAFETY_MARGIN 28.0f
+#define RCL_BD_TRUE_MARGIN 12.0f
+#define RCL_BD_DANGER_GATE 1.15f
 #define RCL_BD_T_URGENT 0.9f
 #define RCL_BD_T_FIELD 1.8f
 #define RCL_BD_PERP_WEIGHT 2.4f
@@ -134,6 +139,7 @@ typedef struct
     float vx;
     float vy;
     float rad;
+    float hitr;
 } rcl_bd_threat_t;
 
 static rcl_bd_threat_t rcl_bd_threats[RCL_BD_THREAT_MAX];
@@ -506,6 +512,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             memset(h, 0, sizeof(*h));
 
             h->rad = cap->radius + bodyPad;
+            h->hitr = cap->radius + myRadius;
             h->has_segment = cap->has_segment;
             h->name = p->name ? p->name : cap->name;
 
@@ -660,6 +667,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             h->vx = vx;
             h->vy = vy;
             h->rad = rad;
+            h->hitr = shotR + bodyR;
             h->name = p->name;
             h->age = (spec && (spec->flags & RCL_K_FADE))
                          ? ((float)nowMs - (float)(p->spawnedAt ? p->spawnedAt : nowMs))
@@ -711,7 +719,7 @@ static void rcl_bd_norm(float x, float y, float *ox, float *oy)
     *oy = y / len;
 }
 
-static void rcl_bd_push(float x, float y, float vx, float vy, float rad)
+static void rcl_bd_push(float x, float y, float vx, float vy, float rad, float hitr)
 {
     rcl_bd_threat_t *t = nullptr;
 
@@ -727,6 +735,7 @@ static void rcl_bd_push(float x, float y, float vx, float vy, float rad)
     t->vx = vx;
     t->vy = vy;
     t->rad = rad;
+    t->hitr = hitr > 0.0f ? hitr : rad;
 
     rcl_bd_threat_n++;
 }
@@ -745,14 +754,14 @@ static void rcl_bd_build_threats(void)
 
         if (h->has_segment)
         {
-            rcl_bd_push(h->ax, h->ay, 0.0f, 0.0f, h->rad);
-            rcl_bd_push(h->bx, h->by, 0.0f, 0.0f, h->rad);
+            rcl_bd_push(h->ax, h->ay, 0.0f, 0.0f, h->rad, h->hitr);
+            rcl_bd_push(h->bx, h->by, 0.0f, 0.0f, h->rad, h->hitr);
 
             continue;
         }
 
         rcl_ad_fade_vel(h, 0.0f, &vx, &vy);
-        rcl_bd_push(h->x, h->y, vx, vy, h->rad);
+        rcl_bd_push(h->x, h->y, vx, vy, h->rad, h->hitr);
     }
 }
 
@@ -1071,6 +1080,16 @@ static int rcl_bd_urgent_dir(float mx, float my, float myR, float ix, float iy, 
     return 1;
 }
 
+static float rcl_bd_true_r(const rcl_bd_threat_t *p, float myR)
+{
+    if (p->hitr > 0.0f)
+    {
+        return p->hitr;
+    }
+
+    return myR + p->rad;
+}
+
 static int rcl_bd_danger(float mx, float my, float myR)
 {
     int i;
@@ -1078,7 +1097,7 @@ static int rcl_bd_danger(float mx, float my, float myR)
     for (i = 0; i < rcl_bd_threat_n; i++)
     {
         const rcl_bd_threat_t *p = &rcl_bd_threats[i];
-        float r = myR + p->rad + RCL_BD_SAFETY_MARGIN * 2.5f;
+        float r = (rcl_bd_true_r(p, myR) + RCL_BD_TRUE_MARGIN) * RCL_BD_DANGER_GATE;
         float dx = mx - p->x;
         float dy = my - p->y;
         float distSq = dx * dx + dy * dy;
@@ -1193,7 +1212,6 @@ static void rcl_ad_stop(float mx, float my, const char *why)
 #define RCL_BDC_WALL_BAND 170.0f
 #define RCL_BDC_WALL_PROBE 3
 #define RCL_BDC_EXTRA_BLEND 120.0f
-#define RCL_BDC_HIT_GATE 1.15f
 #define RCL_BDC_FAR 1.0e18f
 #define RCL_BDC_EPS 1.0f
 #define RCL_BDC_DIR_MAX (RCL_AD_DIR_COUNT + RCL_BDC_EXTRA)
@@ -1212,7 +1230,7 @@ static uint64_t rcl_bdc_idle = 0;
 
 static int rcl_bdc_aimed_one(const rcl_bd_threat_t *p, float mx, float my, float myR)
 {
-    float r = myR + p->rad + RCL_BD_SAFETY_MARGIN;
+    float r = rcl_bd_true_r(p, myR) + RCL_BD_TRUE_MARGIN;
     float vx = p->vx;
     float vy = p->vy;
     float px = p->x - mx;
@@ -1240,7 +1258,7 @@ static int rcl_bdc_aimed_one(const rcl_bd_threat_t *p, float mx, float my, float
         minD2 = c + b * tm + a * tm * tm;
     }
 
-    if (minD2 <= (r * RCL_BDC_HIT_GATE) * (r * RCL_BDC_HIT_GATE))
+    if (minD2 <= r * r)
     {
         return 1;
     }
@@ -1952,9 +1970,13 @@ void rcl_autododge(void)
 
         rcl_publish_own(objects[ownIndex].object, ownFrom);
 
-        if (!rcl_own_logged)
+        if (rcl_ad_own_src != ownFrom || rcl_ad_own_gid_seen != rcl_own_gid)
         {
+            rcl_ad_own_src = ownFrom;
+            rcl_ad_own_gid_seen = rcl_own_gid;
             rcl_own_logged = 1;
+
+            rcl_log_info("own src=%s gid=%d", ownFrom, rcl_own_gid);
         }
     }
 

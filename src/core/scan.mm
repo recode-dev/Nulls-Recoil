@@ -4206,15 +4206,45 @@ void rcl_own_index_probe(void)
     }
 }
 
-void rcl_publish_own(uintptr_t elem, const char *)
+static int rcl_own_src_trusted(const char *from)
+{
+    if (!from)
+    {
+        return 0;
+    }
+    if (strcmp(from, "v129-slot") == 0)
+    {
+        return 1;
+    }
+    if (strcmp(from, "v129-gid") == 0)
+    {
+        return 1;
+    }
+    if (strcmp(from, "latched") == 0)
+    {
+        return 1;
+    }
+    return strcmp(from, "gid") == 0;
+}
+
+void rcl_publish_own(uintptr_t elem, const char *from)
 {
     uintptr_t vt = 0;
     const char *why = "?";
+    int32_t gid = 0;
     if (!rcl_cand_ok(elem, &why, &vt))
     {
         return;
     }
     rcl_own_elem = elem;
+    if (rcl_own_src_trusted(from))
+    {
+        gid = rcl_gid(elem, nullptr);
+        if (gid >= RCL_GID_FLOOR && gid < 2000000)
+        {
+            rcl_own_gid = gid;
+        }
+    }
     if (rcl_pub_logs < RCL_PUB_LOGS)
     {
         rcl_pub_logs++;
@@ -4614,29 +4644,6 @@ int rcl_resolve_own(const rcl_obj_t *objects, int usable, int *indexOut, const c
     {
         return 0;
     }
-    {
-        uintptr_t minOwn = 0;
-        int32_t minGid = 0;
-        if (rcl_own_by_min_gid(rcl_tick_array, rcl_tick_count, &minOwn, &minGid) && minOwn)
-        {
-            for (i = 0; i < usable; i++)
-            {
-                if (objects[i].object != minOwn)
-                {
-                    continue;
-                }
-                if (indexOut)
-                {
-                    *indexOut = i;
-                }
-                if (fromOut)
-                {
-                    *fromOut = "v134-min";
-                }
-                return 1;
-            }
-        }
-    }
     if (rcl_own_from_slot(&slotOwn, &slotGid) && slotOwn)
     {
         for (i = 0; i < usable; i++)
@@ -4697,6 +4704,29 @@ int rcl_resolve_own(const rcl_obj_t *objects, int usable, int *indexOut, const c
                 *fromOut = "v129-gid";
             }
             return 1;
+        }
+    }
+    {
+        uintptr_t minOwn = 0;
+        int32_t minGid = 0;
+        if (rcl_own_by_min_gid(rcl_tick_array, rcl_tick_count, &minOwn, &minGid) && minOwn)
+        {
+            for (i = 0; i < usable; i++)
+            {
+                if (objects[i].object != minOwn)
+                {
+                    continue;
+                }
+                if (indexOut)
+                {
+                    *indexOut = i;
+                }
+                if (fromOut)
+                {
+                    *fromOut = "v134-min";
+                }
+                return 1;
+            }
         }
     }
     if (rcl_own_from_list(objects, usable, indexOut, fromOut))
@@ -4889,7 +4919,7 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
     {
         *fromOut = "none";
     }
-    if (!objects || usable <= 0 || !rcl_own_elem_scan)
+    if (!objects || usable <= 0 || (!rcl_own_elem_scan && rcl_own_gid <= 0))
     {
         return 0;
     }
@@ -4916,6 +4946,29 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
             *fromOut = "latched";
         }
         return 1;
+    }
+    if (rcl_own_gid > 0)
+    {
+        for (i = 0; i < usable; i++)
+        {
+            if (objects[i].gid != rcl_own_gid)
+            {
+                continue;
+            }
+            if (objects[i].teamOld < 0 || objects[i].teamOld > 15)
+            {
+                continue;
+            }
+            if (indexOut)
+            {
+                *indexOut = i;
+            }
+            if (fromOut)
+            {
+                *fromOut = "gid";
+            }
+            return 1;
+        }
     }
     return 0;
 }
@@ -4973,7 +5026,6 @@ int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32
     {
         return 0;
     }
-    rcl_own_gid = bestGid;
     if (elemOut)
     {
         *elemOut = best;
