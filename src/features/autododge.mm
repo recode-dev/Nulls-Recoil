@@ -1992,8 +1992,6 @@ void rcl_autododge(void)
 
     if (rcl_life((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY))
     {
-        rcl_ad_stop((float)ownX, (float)ownY, "dead");
-
         rcl_bdc_have_last = 0;
         rcl_bdc_last_x = 0.0f;
         rcl_bdc_last_y = 0.0f;
