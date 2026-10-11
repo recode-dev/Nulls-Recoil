@@ -410,6 +410,10 @@ void *rcl_msg_alloc(void)
 
 void *rcl_manager(void)
 {
+    if (!rcl_scene_object || !rcl_scene_live())
+    {
+        return nullptr;
+    }
     static uintptr_t c_battle = 0;
     uintptr_t battleFn = rcl_callable_cached(&c_battle, RCL_GETBATTLE_RVA);
     void *battle = nullptr;
