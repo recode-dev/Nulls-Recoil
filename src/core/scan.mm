@@ -2549,7 +2549,7 @@ void setup(void)
         return;
     }
     rcl_setup_done = YES;
-    rcl_log_set_enabled(0);
+    rcl_log_set_enabled(RCL_LOGS_ON);
     rcl_flag_set("logs", RCL_LOGS_ON);
     rcl_load_function_starts();
     rcl_resolve_addresses();

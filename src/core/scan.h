@@ -567,7 +567,7 @@ void rcl_run_autododge(void);
 #define RCL_LIVE_TEAM_MIN 2
 #define RCL_IDLE_RETRY_TICKS 300
 #define RCL_SNAPSHOT_DELAY 1.2
-#define RCL_LOGS_ON 0
+#define RCL_LOGS_ON 1
 
 extern uintptr_t rcl_scene_object;
 
