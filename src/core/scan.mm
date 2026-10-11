@@ -2275,14 +2275,17 @@ int rcl_state_tick(void)
     }
     if (!slot)
     {
+        rcl_scene_object = 0;
         return 0;
     }
     if (state != 5)
     {
+        rcl_scene_object = 0;
         return 0;
     }
     if (!rcl_read_ptr(slot + RCL_SCENE_OFF, &value) || !value)
     {
+        rcl_scene_object = 0;
         return 0;
     }
     scene = (uintptr_t)value;
@@ -3361,10 +3364,30 @@ uintptr_t rcl_hop(uintptr_t base, int *whyOut)
     }
     return (uintptr_t)q;
 }
+int rcl_scene_live(void)
+{
+    uintptr_t slot = (uintptr_t)rcl_read_global_ptr(RCL_STATE_RVA);
+    void *value = nullptr;
+    int32_t state = -1;
+    if (!rcl_scene_object || !slot)
+    {
+        return 0;
+    }
+    if (!rcl_read_int(slot + RCL_STATE_ENUM_OFF, &state) || state != 5)
+    {
+        return 0;
+    }
+    if (!rcl_read_ptr(slot + RCL_SCENE_OFF, &value) || !value)
+    {
+        return 0;
+    }
+    return (uintptr_t)value == rcl_scene_object;
+}
+
 uintptr_t rcl_client(void)
 {
     void *client = nullptr;
-    if (!rcl_scene_object)
+    if (!rcl_scene_object || !rcl_scene_live())
     {
         return 0;
     }

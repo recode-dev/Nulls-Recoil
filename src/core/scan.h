@@ -571,6 +571,8 @@ void rcl_run_autododge(void);
 
 extern uintptr_t rcl_scene_object;
 
+int rcl_scene_live(void);
+
 extern int rcl_prev_state;
 extern uintptr_t rcl_own_ptr_a;
 extern int rcl_hop_chosen;
