@@ -11,12 +11,10 @@ Recoil_FILES := $(shell find src -name "*.mm" | sort)
 Recoil_FILES += $(shell find $(RECOIL_HOOK_DIR) -name "*.c" -o -name "*.mm" 2>/dev/null | sort)
 
 RECOIL_INCLUDE_FLAGS := -Isrc -I$(RECOIL_HOOK_DIR)
-RECOIL_WARNING_FLAGS := -Wall -Wextra
+RECOIL_WARNING_FLAGS := -Wall -Wextra -Wno-unused-function
 
 Recoil_CFLAGS := $(RECOIL_WARNING_FLAGS) $(RECOIL_INCLUDE_FLAGS)
 Recoil_OBJCFLAGS := -fobjc-arc -std=c++17 $(RECOIL_WARNING_FLAGS) $(RECOIL_INCLUDE_FLAGS)
-
-src/features/autododge.mm_CFLAGS := -Wno-unused-function
 
 Recoil_FRAMEWORKS := Foundation
 
