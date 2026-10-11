@@ -636,7 +636,7 @@ void rcl_state_note(int state);
 int rcl_own_scan(void);
 int rcl_resolve_own_fallback(const rcl_obj_t *objects, int usable, int *indexOut,
                              const char **fromOut);
-int rcl_proj_scan(uintptr_t manager, int32_t count);
+int rcl_proj_scan(uintptr_t manager, int32_t count, const rcl_obj_t *roster, int rosterUsable);
 
 uintptr_t rcl_controller(void);
 void rcl_death_signals(uintptr_t ownElem, int32_t ownX, int32_t ownY);

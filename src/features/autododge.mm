@@ -1593,7 +1593,7 @@ void rcl_autododge(void)
             return;
         }
 
-        rcl_proj_scan(rcl_manager_ptr, projCount);
+        rcl_proj_scan(rcl_manager_ptr, projCount, objects, usable);
 
         rcl_active = rcl_ad_update((float)ownX, (float)ownY);
     }

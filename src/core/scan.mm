@@ -3464,7 +3464,7 @@ static int rcl_proj_read_name(uintptr_t data, char *dst, int cap)
     return 1;
 }
 
-int rcl_proj_scan(uintptr_t manager, int32_t count)
+int rcl_proj_scan(uintptr_t manager, int32_t count, const rcl_obj_t *roster, int rosterUsable)
 {
     void *array = nullptr;
     int found = 0;
@@ -3592,7 +3592,33 @@ int rcl_proj_scan(uintptr_t manager, int32_t count)
             uintptr_t teamOff =
                 (rcl_team_off == (int)RCL_OBJ_TEAM_OFF) ? RCL_OBJ_TEAM_OFF : RCL_TEAM_OFF;
             int32_t pteam = -1;
-            if (rcl_read_int((uintptr_t)element + teamOff, &pteam) && pteam >= 0 && pteam <= 7)
+            int32_t ownerIdx = -1;
+            int settled = 0;
+            int rk = 0;
+            if (roster && rosterUsable > 0 &&
+                rcl_read_int((uintptr_t)element + (uintptr_t)RCL_OBJ_OWNERINDEX_OFF, &ownerIdx) &&
+                ownerIdx >= 0 && ownerIdx < 64)
+            {
+                for (rk = 0; rk < rosterUsable && rk < 64; rk++)
+                {
+                    if (roster[rk].ownerIndex != ownerIdx)
+                    {
+                        continue;
+                    }
+                    if (roster[rk].gid < 1000000 || roster[rk].gid >= 2000000)
+                    {
+                        continue;
+                    }
+                    pteam = rcl_team_at(roster, rk);
+                    settled = 1;
+                    break;
+                }
+            }
+            if (!settled && rcl_read_int((uintptr_t)element + teamOff, &pteam) && pteam >= 0 && pteam <= 7)
+            {
+                settled = 1;
+            }
+            if (settled && pteam >= 0 && pteam <= 15)
             {
                 rcl_projs[slot].team = pteam;
             }
