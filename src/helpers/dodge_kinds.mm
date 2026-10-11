@@ -832,10 +832,9 @@ float rcl_proj_radius(const rcl_proj_t *p, float speed)
         float r = 0.0f;
         if (base && rcl_read_float(base + (uintptr_t)rcl_rad_off, &r) && rcl_ok(r, 0.0f, 600.0f))
         {
-            rcl_rad_est = r;
             return r;
         }
-        return rcl_ok(rcl_rad_est, 0.0f, 600.0f) ? rcl_rad_est : 0.0f;
+        return 0.0f;
     }
     if (!base)
     {
@@ -886,8 +885,7 @@ float rcl_proj_radius(const rcl_proj_t *p, float speed)
             return 0.0f;
         }
         rcl_rad_off = off + 4;
-        rcl_rad_est = r;
         return r;
     }
-    return 150.0f;
+    return 0.0f;
 }

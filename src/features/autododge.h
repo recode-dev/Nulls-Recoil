@@ -20,7 +20,6 @@ extern float rcl_own_r;
 
 int rcl_ok(float v, float lo, float hi);
 
-extern float rcl_rad_est;
 extern int rcl_cal_off_seen;
 extern int rcl_rad_off;
 

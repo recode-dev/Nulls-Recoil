@@ -27,10 +27,9 @@ int rcl_ok(float v, float lo, float hi)
 
 int rcl_rad_off = -1;
 
-float rcl_rad_est = 0.0f;
-
 float rcl_own_r = 0.0f;
 
+#define RCL_AD_BODY_RADIUS 120.0f
 #define RCL_DODGE_CHAR_SPEED 1440.0f
 #define RCL_DODGE_SPEED_MIN 300
 #define RCL_DODGE_SPEED_MAX 8500
@@ -62,7 +61,6 @@ static void rcl_dodge_speed_probe(void)
 
 #define RCL_AD_AWARE 1500.0f
 #define RCL_AD_T_AHEAD 0.9f
-#define RCL_AD_FALLBACK_RANGE 2800.0f
 #define RCL_AD_DIR_COUNT 64
 #define RCL_AD_SKIN 50.0f
 #define RCL_TAU 6.28318531f
@@ -205,15 +203,11 @@ static int rcl_bd_style(const char *name, const rcl_kind_t *spec, int thrower, i
 static float rcl_ad_ball_radius(const rcl_proj_t *p)
 {
     float r = p->radius;
-    if (r <= 0.0f)
-    {
-        r = rcl_proj_radius(p, 1.0f);
-    }
     if (r > 0.0f)
     {
         return r;
     }
-    return RCL_PROJ_RADIUS_DEFAULT;
+    return rcl_proj_radius(p, 1.0f);
 }
 
 static float rcl_ad_traveled(const rcl_proj_t *p)
@@ -382,11 +376,7 @@ static float rcl_ad_kind_reach(const rcl_proj_t *p, const rcl_kind_t *spec, floa
             r = td;
         }
     }
-    if (r <= 0.0f)
-    {
-        r = RCL_AD_FALLBACK_RANGE;
-    }
-    if (spec && spec->reachAdj)
+    if (r > 0.0f && spec && spec->reachAdj)
     {
         r += (float)spec->reachAdj;
     }
@@ -394,7 +384,7 @@ static float rcl_ad_kind_reach(const rcl_proj_t *p, const rcl_kind_t *spec, floa
     {
         return r;
     }
-    return RCL_AD_FALLBACK_RANGE;
+    return 0.0f;
 }
 
 static int rcl_ad_home_pos(const rcl_proj_t *p, float *xOut, float *yOut)
@@ -634,11 +624,11 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             continue;
         }
         gap = sqrtf(dx * dx + dy * dy) - bodyR - shotR;
-        if (left < RCL_BDC_REACH_K * (gap > 0.0f ? gap : 0.0f))
+        if (left > 0.0f && left < RCL_BDC_REACH_K * (gap > 0.0f ? gap : 0.0f))
         {
             continue;
         }
-        if (!blob && spd >= 1.0f && playerAlong > left + shotR)
+        if (left > 0.0f && !blob && spd >= 1.0f && playerAlong > left + shotR)
         {
             continue;
         }
@@ -1029,11 +1019,11 @@ static float rcl_bd_miss_d2(const rcl_bd_threat_t *p, float mx, float my)
 
 static int rcl_bdc_will_hit(const rcl_bd_threat_t *p, float mx, float my, float myR)
 {
-    float core = p->hitr - myR - RCL_AD_SKIN;
+    float core = p->hitr - myR;
     float r;
-    if (core < 0.0f || core > myR)
+    if (core < 0.0f)
     {
-        core = RCL_AD_SKIN;
+        core = 0.0f;
     }
     r = myR + core + RCL_BD_TRUE_MARGIN;
     return rcl_bd_miss_d2(p, mx, my) <= r * r;
@@ -1184,14 +1174,6 @@ static int rcl_ad_update(float mx, float my)
     rcl_ad_build_ring();
     speed = rcl_dodge_speed;
     myRadius = rcl_own_radius();
-    if (speed <= 0.0f)
-    {
-        speed = RCL_DODGE_CHAR_SPEED;
-    }
-    if (myRadius <= 0.0f)
-    {
-        myRadius = 60.0f;
-    }
     rcl_ad_collect(mx, my, myRadius, now);
     rcl_bd_build_threats();
     if (rcl_bd_threat_n == 0)
@@ -1376,7 +1358,7 @@ float rcl_own_radius(void)
         }
         return r;
     }
-    return 120.0f;
+    return RCL_AD_BODY_RADIUS;
 }
 
 int rcl_proj_vel(const rcl_proj_t *p, float *vxOut, float *vyOut)
