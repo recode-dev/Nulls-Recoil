@@ -4634,6 +4634,37 @@ int rcl_life(uintptr_t ownElem, int32_t ownX, int32_t ownY)
     return 0;
 }
 
+int rcl_gid_count(const rcl_obj_t *objects, int usable, int32_t gid)
+{
+    int seen = 0;
+    int i = 0;
+
+    if (!objects || usable <= 0)
+    {
+        return 0;
+    }
+
+    for (i = 0; i < usable; i++)
+    {
+        if (objects[i].gid == gid)
+        {
+            seen++;
+        }
+    }
+
+    return seen;
+}
+
+int rcl_gid_shared(const rcl_obj_t *objects, int usable, int32_t gid)
+{
+    if (gid < RCL_GID_FLOOR || gid >= 2000000)
+    {
+        return 0;
+    }
+
+    return rcl_gid_count(objects, usable, gid) > 1;
+}
+
 int rcl_resolve_own(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut)
 {
     int32_t wx = 0;
@@ -4691,6 +4722,10 @@ int rcl_resolve_own(const rcl_obj_t *objects, int usable, int *indexOut, const c
     else if (rcl_own_ptr_a)
     {
         wantGid = rcl_gid(rcl_own_ptr_a, nullptr);
+    }
+    if (rcl_gid_shared(objects, usable, wantGid))
+    {
+        wantGid = 0;
     }
     for (i = 0; i < usable; i++)
     {
@@ -4964,7 +4999,7 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
         }
         return 1;
     }
-    if (rcl_own_gid > 0)
+    if (rcl_own_gid > 0 && !rcl_gid_shared(objects, usable, rcl_own_gid))
     {
         for (i = 0; i < usable; i++)
         {
@@ -4998,6 +5033,7 @@ int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32
 {
     uintptr_t best = 0;
     int32_t bestGid = 0;
+    int sameGid = 0;
     int32_t i = 0;
     if (elemOut)
     {
@@ -5037,9 +5073,14 @@ int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32
         {
             best = (uintptr_t)element;
             bestGid = gid;
+            sameGid = 1;
+        }
+        else if (gid == bestGid)
+        {
+            sameGid++;
         }
     }
-    if (!best)
+    if (!best || sameGid > 1)
     {
         return 0;
     }
@@ -5087,6 +5128,10 @@ int rcl_own_from_list(const rcl_obj_t *objects, int usable, int *indexOut, const
         }
     }
     if (best < 0)
+    {
+        return 0;
+    }
+    if (rcl_gid_shared(objects, usable, bestGid))
     {
         return 0;
     }

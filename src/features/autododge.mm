@@ -1637,8 +1637,9 @@ void rcl_autododge(void)
                 loggedFrom = from;
                 loggedGid = rcl_own_gid;
 
-                rcl_log_info("own src=%s gid=%d team=%d idx=%d usable=%d", from, rcl_own_gid, (int)ownTeam,
-                             ownIndex, usable);
+                rcl_log_info("own src=%s gid=%d team=%d idx=%d usable=%d gidCount=%d", from, rcl_own_gid,
+                             (int)ownTeam, ownIndex, usable,
+                             rcl_gid_count(objects, usable, objects[ownIndex].gid));
             }
 
             rcl_own_logged = 1;

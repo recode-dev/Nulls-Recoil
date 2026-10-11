@@ -682,6 +682,8 @@ float rcl_own_radius(void);
 int rcl_own_side_spawn(int32_t sx, int32_t sy);
 void rcl_publish_own(uintptr_t elem, const char *from);
 int rcl_own_src_trusted(const char *from);
+int rcl_gid_count(const rcl_obj_t *objects, int usable, int32_t gid);
+int rcl_gid_shared(const rcl_obj_t *objects, int usable, int32_t gid);
 int rcl_resolve_own(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut);
 void rcl_respawn_event(int32_t x, int32_t y, int32_t px, int32_t py);
 void rcl_roster(uintptr_t ownElem, int ownIndex, int ownTeam, const rcl_obj_t *objects, int usable);
