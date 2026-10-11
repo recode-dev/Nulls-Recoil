@@ -739,15 +739,6 @@ static void rcl_bd_build_threats(void)
     }
 }
 
-static float rcl_bd_true_r(const rcl_bd_threat_t *p, float myR)
-{
-    if (p->hitr > 0.0f)
-    {
-        return p->hitr;
-    }
-    return myR + p->rad;
-}
-
 static void rcl_bd_intent(float *ix, float *iy)
 {
     uintptr_t ctrl = rcl_controller();
