@@ -1645,9 +1645,9 @@ void rcl_autododge(void)
                 rcl_log_info("own src=%s gid=%d team=%d idx=%d usable=%d gidCount=%d", from, rcl_own_gid,
                              (int)ownTeam, ownIndex, usable,
                              rcl_gid_count(objects, usable, objects[ownIndex].gid));
-                rcl_log_info("own eng src=%s idx=%d same=%d wit=%d,%d ok=%d pos=%d obj=%#llx", rcl_own_from,
-                             rcl_own_index, engSame, witOk, witX, witY, posSame,
-                             (unsigned long long)objects[ownIndex].object);
+                rcl_log_info("own eng src=%s idx=%d same=%d wit=%d,%d ok=%d pos=%d obj=%#llx own=%d,%d", rcl_own_from,
+                             rcl_own_index, engSame, witX, witY, witOk, posSame,
+                             (unsigned long long)objects[ownIndex].object, objects[ownIndex].x, objects[ownIndex].y);
             }
 
             rcl_own_logged = 1;
