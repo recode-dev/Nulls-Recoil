@@ -1166,6 +1166,22 @@ static int rcl_ad_send_move(float tx, float ty, float mx, float my)
     return rcl_enqueue((int32_t)tx, (int32_t)ty);
 }
 
+static int rcl_ad_stopping = 0;
+
+static void rcl_ad_stop(float mx, float my, const char *why)
+{
+    if (rcl_ad_stopping)
+    {
+        return;
+    }
+
+    rcl_ad_stopping = 1;
+
+    rcl_ad_send_move(mx, my, mx, my);
+
+    rcl_log_info("dodge stop why=%s at=%.0f,%.0f", why, mx, my);
+}
+
 #define RCL_BDC_EXTRA 12
 #define RCL_BDC_DANGER 1000000.0f
 #define RCL_BDC_T_FIELD 2.4f
@@ -1768,11 +1784,15 @@ static int rcl_ad_update(float mx, float my)
 
     if (rcl_bd_threat_n == 0)
     {
+        rcl_ad_stop(mx, my, "clear");
+
         return 0;
     }
 
     if (!rcl_bd_danger(mx, my, myRadius))
     {
+        rcl_ad_stop(mx, my, "safe");
+
         return 0;
     }
 
@@ -1783,6 +1803,8 @@ static int rcl_ad_update(float mx, float my)
     ty = roundf(my + diry * RCL_AD_REACH);
 
     rcl_ad_send_move(tx, ty, mx, my);
+
+    rcl_ad_stopping = 0;
 
     return 1;
 }
@@ -1948,6 +1970,8 @@ void rcl_autododge(void)
 
     if (rcl_life((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY))
     {
+        rcl_ad_stop((float)ownX, (float)ownY, "dead");
+
         rcl_bdc_have_last = 0;
         rcl_bdc_last_x = 0.0f;
         rcl_bdc_last_y = 0.0f;
