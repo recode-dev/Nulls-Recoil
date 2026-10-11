@@ -1,9 +1,9 @@
 #include "../recoil.h"
 
-static const char *g_flag_names[RCL_FEATURE_MAX] = {"aimbot", "autododge", "logs", "assist"};
+static const char *g_flag_names[RCL_FEATURE_MAX] = {"aimbot", "autododge", "assist"};
 
-static int g_flag_count = 4;
-static uint32_t g_flags = RCL_FLAG_AIMBOT | RCL_FLAG_AUTODODGE | (RCL_LOGS_ON ? RCL_FLAG_LOGS : 0u);
+static int g_flag_count = 3;
+static uint32_t g_flags = RCL_FLAG_AIMBOT | RCL_FLAG_AUTODODGE;
 
 static int rcl_flag_index(const char *name)
 {
@@ -53,6 +53,6 @@ int rcl_feature_setup(const char *label, void (*setup)(void))
         return 0;
     }
     setup();
-    rcl_log_info("%s ready", label ? label : "feature");
+    (void)label;
     return 1;
 }

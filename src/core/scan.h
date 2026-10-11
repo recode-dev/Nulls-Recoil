@@ -567,8 +567,6 @@ void rcl_run_autododge(void);
 #define RCL_LIVE_TEAM_MIN 2
 #define RCL_IDLE_RETRY_TICKS 300
 #define RCL_SNAPSHOT_DELAY 1.2
-#define RCL_LOGS_ON 0
-
 extern uintptr_t rcl_scene_object;
 
 int rcl_scene_live(void);
@@ -602,7 +600,6 @@ extern uint64_t rcl_proj_diff_logs;
 extern uintptr_t rcl_own_elem;
 extern int32_t rcl_own_gid;
 extern int rcl_no_source_passes;
-extern int rcl_own_logged;
 extern rcl_proj_t rcl_projs[16];
 extern rcl_proj_death_t rcl_proj_deaths[16];
 extern int rcl_proj_death_n;

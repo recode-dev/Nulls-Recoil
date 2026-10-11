@@ -103,9 +103,6 @@ typedef struct
 #define RCL_AD_CAP_MAX 16
 
 static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
-static int rcl_ad_mine_skipped = 0;
-static int rcl_ad_team_logged_own = -2;
-static int rcl_ad_team_logged_armed = -1;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
 static int rcl_ad_dir_built = 0;
@@ -459,15 +456,11 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
 
         if (rcl_ad_is_mine(p))
         {
-            rcl_ad_mine_skipped++;
-
             continue;
         }
 
         if (rcl_ad_my_shot(p, mx, my, bodyR))
         {
-            rcl_ad_mine_skipped++;
-
             continue;
         }
 
@@ -871,9 +864,6 @@ static float rcl_bdc_impacts[RCL_BDC_DIR_MAX];
 static float rcl_bdc_last_x = 0.0f;
 static float rcl_bdc_last_y = 0.0f;
 static int rcl_bdc_have_last = 0;
-static uint64_t rcl_bdc_log_ms = 0;
-static uint64_t rcl_bdc_seen = 0;
-static uint64_t rcl_bdc_idle = 0;
 
 static void rcl_bdc_forget(void)
 {
@@ -1267,17 +1257,6 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
             }
         }
 
-        rcl_bdc_idle++;
-
-        if (rcl_ad_now_ms() - rcl_bdc_log_ms >= 1000)
-        {
-            rcl_bdc_log_ms = rcl_ad_now_ms();
-
-            rcl_log_info("dodge idle threat=%d aimed=0 dir=%.2f,%.2f idle=%llu dodge=%llu",
-                         rcl_bd_threat_n, *ox, *oy, (unsigned long long)rcl_bdc_idle,
-                         (unsigned long long)rcl_bdc_seen);
-        }
-
         return;
     }
 
@@ -1397,17 +1376,6 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     rcl_bdc_last_x = *ox;
     rcl_bdc_last_y = *oy;
     rcl_bdc_have_last = 1;
-    rcl_bdc_seen++;
-
-    if (rcl_ad_now_ms() - rcl_bdc_log_ms >= 1000)
-    {
-        rcl_bdc_log_ms = rcl_ad_now_ms();
-
-        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d ref=%d threat=%d aimed=%d score=%.0f imp=%.2f dir=%.2f,%.2f dodge=%llu",
-                     cand, (rcl_bdc_impacts[cand] > RCL_BDC_T_URGENT) ? 1 : 0, leastBad, keptPrev, refFromThreat,
-                     rcl_bd_threat_n, rcl_bdc_sel_n, rcl_bdc_scores[cand], rcl_bdc_impacts[cand], *ox, *oy,
-                     (unsigned long long)rcl_bdc_seen);
-    }
 }
 
 static int rcl_ad_update(float mx, float my)
@@ -1619,11 +1587,6 @@ void rcl_autododge(void)
         }
 
         rcl_publish_own(objects[ownIndex].object, ownFrom);
-
-        if (!rcl_own_logged)
-        {
-            rcl_own_logged = 1;
-        }
     }
 
     rcl_own_elem_2 = objects[ownIndex].object;
@@ -1649,17 +1612,6 @@ void rcl_autododge(void)
         if (ownIndex >= 0 && ownTeam >= 0 && ownTeam <= 15)
         {
             rcl_own_team_seen = 1;
-        }
-
-        if (rcl_ad_team_logged_own != rcl_own_team_a || rcl_ad_team_logged_armed != rcl_own_team_seen)
-        {
-            rcl_ad_team_logged_own = rcl_own_team_a;
-            rcl_ad_team_logged_armed = rcl_own_team_seen;
-
-            rcl_log_info("teamOff=%#x armed=%d ownTeam=%d mineSkipped=%d", (unsigned)rcl_team_off, rcl_own_team_seen,
-                         rcl_own_team_a, rcl_ad_mine_skipped);
-
-            rcl_ad_mine_skipped = 0;
         }
 
         rcl_roster(rcl_own_elem_2, ownIndex, (int)ownTeam, objects, usable);

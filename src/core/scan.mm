@@ -2549,8 +2549,6 @@ void setup(void)
         return;
     }
     rcl_setup_done = YES;
-    rcl_log_set_enabled(0);
-    rcl_flag_set("logs", RCL_LOGS_ON);
     rcl_load_function_starts();
     rcl_resolve_addresses();
     rcl_objc_arm(rcl_base, "MetalView", "render", rcl_objc_body);
@@ -5027,7 +5025,6 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
 uintptr_t rcl_own_elem = 0;
 int32_t rcl_own_gid = 0;
 int rcl_no_source_passes = 0;
-int rcl_own_logged = 0;
 
 int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32_t *gidOut)
 {
