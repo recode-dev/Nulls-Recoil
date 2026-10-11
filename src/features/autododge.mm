@@ -419,7 +419,6 @@ static float rcl_ad_life_left(const rcl_proj_t *p, const rcl_kind_t *spec, float
 static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
 {
     float zoneSq = RCL_AD_AWARE * RCL_AD_AWARE;
-    float bodyPad = myRadius + RCL_AD_SKIN;
     float bodyR = myRadius + RCL_AD_SKIN;
     int i;
     int c;
@@ -493,7 +492,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
 
             memset(h, 0, sizeof(*h));
 
-            h->rad = cap->radius + bodyPad;
+            h->rad = cap->radius;
             h->has_segment = cap->has_segment;
             h->name = p->name ? p->name : cap->name;
 
@@ -585,7 +584,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
         blob = (spec && (spec->flags & RCL_K_BLOB)) || (!lockPath && p->isThrower);
         fit = rcl_fit_of(name);
         shotR = rcl_ad_ball_radius(p) + (spec ? (float)spec->growR : 0.0f);
-        rad = shotR + bodyR + fit->pad + shotR * fit->grow;
+        rad = shotR + fit->pad + shotR * fit->grow;
 
         if (spd >= 1.0f)
         {
