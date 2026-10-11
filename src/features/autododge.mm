@@ -76,6 +76,9 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_DIR_COUNT 64
 #define RCL_AD_SKIN 50.0f
 #define RCL_AD_OWN_SPAWN_PAD 60.0f
+#define RCL_AD_ENEMY_NEAR 2400.0f
+#define RCL_AD_ENEMY_WEIGHT 250000.0f
+#define RCL_AD_ANCHOR_TRIES 32
 #define RCL_AD_REACH 600.0f
 #define RCL_AD_WALL_HIT 200000.0f
 #define RCL_AD_PROBE_COUNT 3
@@ -110,6 +113,7 @@ static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
 static int rcl_ad_mine_skipped = 0;
 static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
+static int rcl_ad_anchor_tries = 0;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
 static float rcl_ad_scores[RCL_AD_DIR_COUNT];
@@ -1324,6 +1328,35 @@ static float rcl_bdc_score_dir(float dx, float dy, float mx, float my, float myR
         score += RCL_BDC_DANGER * (r * r) / minD2;
     }
 
+    if (rcl_own_team_seen && rcl_own_team_a >= 0)
+    {
+        for (i = 0; i < rcl_pl_n && i < 12; i++)
+        {
+            float ex = 0.0f;
+            float ey = 0.0f;
+            float d = 0.0f;
+            float w = 0.0f;
+
+            if (rcl_pl_mine[i] || rcl_pl_team[i] < 0 || rcl_pl_team[i] == rcl_own_team_a)
+            {
+                continue;
+            }
+
+            ex = (float)rcl_pl_x[i] - mx;
+            ey = (float)rcl_pl_y[i] - my;
+            d = sqrtf(ex * ex + ey * ey);
+
+            if (d < 1.0f || d > RCL_AD_ENEMY_NEAR)
+            {
+                continue;
+            }
+
+            w = RCL_AD_ENEMY_WEIGHT * (1.0f - d / RCL_AD_ENEMY_NEAR);
+
+            score += w * (1.0f + (dx * ex + dy * ey) / d);
+        }
+    }
+
     return score;
 }
 
@@ -1772,6 +1805,10 @@ static int rcl_ad_update(float mx, float my)
     {
         return 0;
     }
+    if (mx == 0.0f && my == 0.0f)
+    {
+        return 0;
+    }
 
     if (now - rcl_dodge_speed_ms >= 500)
     {
@@ -1969,7 +2006,19 @@ void rcl_autododge(void)
         if (rcl_own_gid > 0 && objects[ownIndex].gid != rcl_own_gid &&
             !rcl_own_src_trusted(ownFrom))
         {
-            return;
+            rcl_ad_anchor_tries++;
+
+            if (objects[ownIndex].object != rcl_own_ptr_a ||
+                rcl_ad_anchor_tries < RCL_AD_ANCHOR_TRIES)
+            {
+                return;
+            }
+
+            rcl_own_gid = objects[ownIndex].gid;
+        }
+        else
+        {
+            rcl_ad_anchor_tries = 0;
         }
 
         if (!rcl_own_logged)
@@ -1984,17 +2033,14 @@ void rcl_autododge(void)
     ownX = objects[ownIndex].x;
     ownY = objects[ownIndex].y;
 
-    if (ownX == 0 && ownY == 0)
-    {
-        return;
-    }
-
     rcl_death_signals((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY);
 
     rcl_alive(ownX, ownY);
 
     if (rcl_life((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY))
     {
+        rcl_own_gid = 0;
+        rcl_ad_anchor_tries = 0;
         rcl_bdc_have_last = 0;
         rcl_bdc_last_x = 0.0f;
         rcl_bdc_last_y = 0.0f;
