@@ -4224,6 +4224,14 @@ int rcl_own_src_trusted(const char *from)
     {
         return 1;
     }
+    if (strcmp(from, "container+e0") == 0)
+    {
+        return 1;
+    }
+    if (strcmp(from, "scene+e0") == 0)
+    {
+        return 1;
+    }
     return strcmp(from, "gid") == 0;
 }
 

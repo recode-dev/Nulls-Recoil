@@ -876,6 +876,13 @@ static uint64_t rcl_bdc_log_ms = 0;
 static uint64_t rcl_bdc_seen = 0;
 static uint64_t rcl_bdc_idle = 0;
 
+static void rcl_bdc_forget(void)
+{
+    rcl_bdc_have_last = 0;
+    rcl_bdc_last_x = 0.0f;
+    rcl_bdc_last_y = 0.0f;
+}
+
 static int rcl_bdc_aimed_one(const rcl_bd_threat_t *p, float mx, float my, float myR)
 {
     float r = myR + p->rad + RCL_BD_SAFETY_MARGIN;
@@ -1450,6 +1457,8 @@ static int rcl_ad_update(float mx, float my)
 
     if (rcl_bd_threat_n == 0)
     {
+        rcl_bdc_forget();
+
         return 0;
     }
 
@@ -1663,6 +1672,8 @@ void rcl_autododge(void)
 
         if (rcl_life(objects[ownIndex].object, ownX, ownY))
         {
+            rcl_bdc_forget();
+
             return;
         }
 
