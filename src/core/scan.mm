@@ -3649,6 +3649,24 @@ int rcl_proj_scan(uintptr_t manager, int32_t count)
                         rcl_projs[slot].radius = (float)rad;
                     }
                 }
+                {
+                    uintptr_t area = 0;
+                    if (rcl_read_ptr((uintptr_t)def + (uintptr_t)OFF_PROJECTILEDATA_SPAWNAREA, &area) && area)
+                    {
+                        int32_t areaRadius = 0;
+                        int32_t areaTime = 0;
+                        if (rcl_read_int(area + (uintptr_t)OFF_AREAEFFECT_RADIUS, &areaRadius) &&
+                            areaRadius >= RCL_AREA_RADIUS_MIN && areaRadius <= RCL_AREA_RADIUS_MAX)
+                        {
+                            rcl_projs[slot].spawnAreaRadius = areaRadius;
+                        }
+                        if (rcl_read_int(area + (uintptr_t)OFF_AREAEFFECT_TIMEMS, &areaTime) &&
+                            areaTime >= RCL_AREA_TIME_MIN && areaTime <= RCL_AREA_TIME_MAX)
+                        {
+                            rcl_projs[slot].spawnAreaActiveTime = areaTime;
+                        }
+                    }
+                }
             }
             {
                 int32_t raw = 0;

@@ -423,6 +423,10 @@ uintptr_t rcl_pair_base(void);
 #define RCL_VALUE_MAX 1000000
 #define RCL_FLOAT_MAX 10000.0f
 #define RCL_TEAM_MAX 8
+#define RCL_AREA_RADIUS_MIN 1
+#define RCL_AREA_RADIUS_MAX 6000
+#define RCL_AREA_TIME_MIN 1
+#define RCL_AREA_TIME_MAX 60000
 
 uintptr_t rcl_entry(uintptr_t rva);
 int rcl_is_prologue(uint32_t w);
