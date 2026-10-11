@@ -575,7 +575,8 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             }
         }
         spd = sqrtf(vx * vx + vy * vy);
-        if (spd < 1.0f && (p->spawnX || p->spawnY))
+        if (spd < 1.0f && !p->isThrower && !(spec && (spec->flags & RCL_K_DROP)) &&
+            (p->spawnX || p->spawnY))
         {
             float sx = (float)p->x - (float)p->spawnX;
             float sy = (float)p->y - (float)p->spawnY;
@@ -1028,7 +1029,13 @@ static float rcl_bd_miss_d2(const rcl_bd_threat_t *p, float mx, float my)
 
 static int rcl_bdc_will_hit(const rcl_bd_threat_t *p, float mx, float my, float myR)
 {
-    float r = rcl_bd_true_r(p, myR) + RCL_BD_TRUE_MARGIN;
+    float core = p->hitr - myR - RCL_AD_SKIN;
+    float r;
+    if (core < 0.0f || core > myR)
+    {
+        core = RCL_AD_SKIN;
+    }
+    r = myR + core + RCL_BD_TRUE_MARGIN;
     return rcl_bd_miss_d2(p, mx, my) <= r * r;
 }
 
