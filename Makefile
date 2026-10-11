@@ -16,6 +16,8 @@ RECOIL_WARNING_FLAGS := -Wall -Wextra
 Recoil_CFLAGS := $(RECOIL_WARNING_FLAGS) $(RECOIL_INCLUDE_FLAGS)
 Recoil_OBJCFLAGS := -fobjc-arc -std=c++17 $(RECOIL_WARNING_FLAGS) $(RECOIL_INCLUDE_FLAGS)
 
+src/features/autododge.mm_CFLAGS := -Wno-unused-function
+
 Recoil_FRAMEWORKS := Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
