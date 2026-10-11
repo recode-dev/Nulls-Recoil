@@ -82,7 +82,7 @@ extern int rcl_wired;
 extern dispatch_source_t rcl_scan_timer;
 extern rcl_trail_t rcl_trail[8];
 extern int rcl_trail_count;
-extern uintptr_t rcl_own_elem_2;
+extern uintptr_t rcl_own_elem_scan;
 
 BOOL rcl_query_region(uintptr_t address, vm_prot_t *protection, vm_prot_t *maxProtection,
                       mach_vm_size_t *regionSize, uintptr_t *regionStart);
@@ -631,8 +631,8 @@ int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32
 int rcl_own_from_list(const rcl_obj_t *objects, int usable, int *indexOut, const char **fromOut);
 void rcl_state_note(int state);
 int rcl_own_scan(void);
-int rcl_resolve_own_2(const rcl_obj_t *objects, int usable, int *indexOut,
-                      const char **fromOut);
+int rcl_resolve_own_fallback(const rcl_obj_t *objects, int usable, int *indexOut,
+                             const char **fromOut);
 int rcl_proj_scan(uintptr_t manager, int32_t count);
 
 uintptr_t rcl_controller(void);
@@ -727,5 +727,9 @@ int rcl_element_ascii(uintptr_t element);
 #define SCAN_MAX 256
 
 int rcl_witness(int32_t *x, int32_t *y);
+
+#define rcl_in_drive rcl_in_move
+#define rcl_own_elem_2 rcl_own_elem_scan
+#define rcl_resolve_own_2 rcl_resolve_own_fallback
 
 #endif
