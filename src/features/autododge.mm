@@ -75,10 +75,6 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_FALLBACK_RANGE 2800.0f
 #define RCL_AD_DIR_COUNT 64
 #define RCL_AD_SKIN 50.0f
-#define RCL_AD_OWN_SPAWN_PAD 60.0f
-#define RCL_AD_ENEMY_NEAR 2400.0f
-#define RCL_AD_ENEMY_WEIGHT 250000.0f
-#define RCL_AD_ANCHOR_TRIES 32
 #define RCL_AD_REACH 600.0f
 #define RCL_AD_WALL_HIT 200000.0f
 #define RCL_AD_PROBE_COUNT 3
@@ -94,7 +90,6 @@ typedef struct
     float vx;
     float vy;
     float rad;
-    float hitr;
     float age;
     float fade_base;
     float fade_k;
@@ -113,7 +108,6 @@ static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
 static int rcl_ad_mine_skipped = 0;
 static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
-static int rcl_ad_anchor_tries = 0;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
 static float rcl_ad_scores[RCL_AD_DIR_COUNT];
@@ -121,8 +115,6 @@ static int rcl_ad_dir_built = 0;
 static int rcl_ad_hazard_n = 0;
 
 #define RCL_BD_SAFETY_MARGIN 28.0f
-#define RCL_BD_TRUE_MARGIN 12.0f
-#define RCL_BD_DANGER_GATE 1.15f
 #define RCL_BD_T_URGENT 0.9f
 #define RCL_BD_T_FIELD 1.8f
 #define RCL_BD_PERP_WEIGHT 2.4f
@@ -141,7 +133,6 @@ typedef struct
     float vx;
     float vy;
     float rad;
-    float hitr;
 } rcl_bd_threat_t;
 
 static rcl_bd_threat_t rcl_bd_threats[RCL_BD_THREAT_MAX];
@@ -225,38 +216,6 @@ static int rcl_ad_is_mine(const rcl_proj_t *p)
     }
 
     return 0;
-}
-
-static int rcl_ad_fired_from_me(const rcl_proj_t *p, float mx, float my, float bodyR)
-{
-    float sx;
-    float sy;
-    float nx;
-    float ny;
-    float dSpawn;
-    float dNow;
-    float r;
-
-    if (!p->spawnX && !p->spawnY)
-    {
-        return 0;
-    }
-
-    sx = (float)p->spawnX - mx;
-    sy = (float)p->spawnY - my;
-    dSpawn = sqrtf(sx * sx + sy * sy);
-    r = bodyR + RCL_AD_OWN_SPAWN_PAD;
-
-    if (dSpawn > r)
-    {
-        return 0;
-    }
-
-    nx = (float)p->x - mx;
-    ny = (float)p->y - my;
-    dNow = sqrtf(nx * nx + ny * ny);
-
-    return dNow > dSpawn ? 1 : 0;
 }
 
 static float rcl_ad_seg_dist(float px, float py, float ax, float ay, float bx, float by)
@@ -485,13 +444,6 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             continue;
         }
 
-        if (rcl_ad_fired_from_me(p, mx, my, bodyR))
-        {
-            rcl_ad_mine_skipped++;
-
-            continue;
-        }
-
         shaped = rcl_shape_hazards(p, nowMs, rcl_ad_caps, RCL_AD_CAP_MAX);
 
         for (c = 0; c < shaped; c++)
@@ -514,7 +466,6 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             memset(h, 0, sizeof(*h));
 
             h->rad = cap->radius + bodyPad;
-            h->hitr = cap->radius + myRadius;
             h->has_segment = cap->has_segment;
             h->name = p->name ? p->name : cap->name;
 
@@ -669,7 +620,6 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             h->vx = vx;
             h->vy = vy;
             h->rad = rad;
-            h->hitr = shotR + bodyR;
             h->name = p->name;
             h->age = (spec && (spec->flags & RCL_K_FADE))
                          ? ((float)nowMs - (float)(p->spawnedAt ? p->spawnedAt : nowMs))
@@ -721,7 +671,7 @@ static void rcl_bd_norm(float x, float y, float *ox, float *oy)
     *oy = y / len;
 }
 
-static void rcl_bd_push(float x, float y, float vx, float vy, float rad, float hitr)
+static void rcl_bd_push(float x, float y, float vx, float vy, float rad)
 {
     rcl_bd_threat_t *t = nullptr;
 
@@ -737,7 +687,6 @@ static void rcl_bd_push(float x, float y, float vx, float vy, float rad, float h
     t->vx = vx;
     t->vy = vy;
     t->rad = rad;
-    t->hitr = hitr > 0.0f ? hitr : rad;
 
     rcl_bd_threat_n++;
 }
@@ -756,14 +705,14 @@ static void rcl_bd_build_threats(void)
 
         if (h->has_segment)
         {
-            rcl_bd_push(h->ax, h->ay, 0.0f, 0.0f, h->rad, h->hitr);
-            rcl_bd_push(h->bx, h->by, 0.0f, 0.0f, h->rad, h->hitr);
+            rcl_bd_push(h->ax, h->ay, 0.0f, 0.0f, h->rad);
+            rcl_bd_push(h->bx, h->by, 0.0f, 0.0f, h->rad);
 
             continue;
         }
 
         rcl_ad_fade_vel(h, 0.0f, &vx, &vy);
-        rcl_bd_push(h->x, h->y, vx, vy, h->rad, h->hitr);
+        rcl_bd_push(h->x, h->y, vx, vy, h->rad);
     }
 }
 
@@ -1082,16 +1031,6 @@ static int rcl_bd_urgent_dir(float mx, float my, float myR, float ix, float iy, 
     return 1;
 }
 
-static float rcl_bd_true_r(const rcl_bd_threat_t *p, float myR)
-{
-    if (p->hitr > 0.0f)
-    {
-        return p->hitr;
-    }
-
-    return myR + p->rad;
-}
-
 static int rcl_bd_danger(float mx, float my, float myR)
 {
     int i;
@@ -1099,7 +1038,7 @@ static int rcl_bd_danger(float mx, float my, float myR)
     for (i = 0; i < rcl_bd_threat_n; i++)
     {
         const rcl_bd_threat_t *p = &rcl_bd_threats[i];
-        float r = (rcl_bd_true_r(p, myR) + RCL_BD_TRUE_MARGIN) * RCL_BD_DANGER_GATE;
+        float r = myR + p->rad + RCL_BD_SAFETY_MARGIN * 2.5f;
         float dx = mx - p->x;
         float dy = my - p->y;
         float distSq = dx * dx + dy * dy;
@@ -1187,20 +1126,6 @@ static int rcl_ad_send_move(float tx, float ty, float mx, float my)
     return rcl_enqueue((int32_t)tx, (int32_t)ty);
 }
 
-static int rcl_ad_stopping = 0;
-
-static void rcl_ad_stop(float mx, float my)
-{
-    if (rcl_ad_stopping)
-    {
-        return;
-    }
-
-    rcl_ad_stopping = 1;
-
-    rcl_ad_send_move(mx, my, mx, my);
-}
-
 #define RCL_BDC_EXTRA 12
 #define RCL_BDC_DANGER 1000000.0f
 #define RCL_BDC_T_FIELD 2.4f
@@ -1212,6 +1137,7 @@ static void rcl_ad_stop(float mx, float my)
 #define RCL_BDC_WALL_BAND 170.0f
 #define RCL_BDC_WALL_PROBE 3
 #define RCL_BDC_EXTRA_BLEND 120.0f
+#define RCL_BDC_HIT_GATE 1.15f
 #define RCL_BDC_FAR 1.0e18f
 #define RCL_BDC_EPS 1.0f
 #define RCL_BDC_DIR_MAX (RCL_AD_DIR_COUNT + RCL_BDC_EXTRA)
@@ -1230,7 +1156,7 @@ static uint64_t rcl_bdc_idle = 0;
 
 static int rcl_bdc_aimed_one(const rcl_bd_threat_t *p, float mx, float my, float myR)
 {
-    float r = rcl_bd_true_r(p, myR) + RCL_BD_TRUE_MARGIN;
+    float r = myR + p->rad + RCL_BD_SAFETY_MARGIN;
     float vx = p->vx;
     float vy = p->vy;
     float px = p->x - mx;
@@ -1258,7 +1184,7 @@ static int rcl_bdc_aimed_one(const rcl_bd_threat_t *p, float mx, float my, float
         minD2 = c + b * tm + a * tm * tm;
     }
 
-    if (minD2 <= r * r)
+    if (minD2 <= (r * RCL_BDC_HIT_GATE) * (r * RCL_BDC_HIT_GATE))
     {
         return 1;
     }
@@ -1326,35 +1252,6 @@ static float rcl_bdc_score_dir(float dx, float dy, float mx, float my, float myR
         }
 
         score += RCL_BDC_DANGER * (r * r) / minD2;
-    }
-
-    if (rcl_own_team_seen && rcl_own_team_a >= 0)
-    {
-        for (i = 0; i < rcl_pl_n && i < 12; i++)
-        {
-            float ex = 0.0f;
-            float ey = 0.0f;
-            float d = 0.0f;
-            float w = 0.0f;
-
-            if (rcl_pl_mine[i] || rcl_pl_team[i] < 0 || rcl_pl_team[i] == rcl_own_team_a)
-            {
-                continue;
-            }
-
-            ex = (float)rcl_pl_x[i] - mx;
-            ey = (float)rcl_pl_y[i] - my;
-            d = sqrtf(ex * ex + ey * ey);
-
-            if (d < 1.0f || d > RCL_AD_ENEMY_NEAR)
-            {
-                continue;
-            }
-
-            w = RCL_AD_ENEMY_WEIGHT * (1.0f - d / RCL_AD_ENEMY_NEAR);
-
-            score += w * (1.0f + (dx * ex + dy * ey) / d);
-        }
     }
 
     return score;
@@ -1519,7 +1416,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     float rx = ix;
     float ry = iy;
     int hasRef = (ix != 0.0f || iy != 0.0f) ? 1 : 0;
-    int escape = 0;
+    int refFromThreat = 0;
     int count;
     int i;
     int best = 0;
@@ -1550,19 +1447,32 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         }
     }
 
-    if (rcl_bdc_sel_n == 0 && rcl_bd_threat_n > 0)
-    {
-        for (i = 0; i < rcl_bd_threat_n; i++)
-        {
-            rcl_bdc_sel[i] = i;
-        }
-
-        rcl_bdc_sel_n = rcl_bd_threat_n;
-        escape = 1;
-    }
-
     if (rcl_bdc_sel_n == 0)
     {
+        if (!hasRef && rcl_bd_threat_n > 0)
+        {
+            int nearest = 0;
+            float nd = RCL_BDC_FAR;
+
+            for (i = 0; i < rcl_bd_threat_n; i++)
+            {
+                float dx = rcl_bd_threats[i].x - mx;
+                float dy = rcl_bd_threats[i].y - my;
+                float d2 = dx * dx + dy * dy;
+
+                if (d2 < nd)
+                {
+                    nd = d2;
+                    nearest = i;
+                }
+            }
+
+            rx = mx - rcl_bd_threats[nearest].x;
+            ry = my - rcl_bd_threats[nearest].y;
+            hasRef = 1;
+            refFromThreat = 1;
+        }
+
         if (hasRef && (rx != 0.0f || ry != 0.0f))
         {
             float len = sqrtf(rx * rx + ry * ry);
@@ -1584,6 +1494,51 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         rcl_bdc_last_x = *ox;
         rcl_bdc_last_y = *oy;
         rcl_bdc_have_last = 1;
+        if (rcl_bd_threat_n > 0 && (*ox != 0.0f || *oy != 0.0f))
+        {
+            int nearest = 0;
+            float nd = RCL_BDC_FAR;
+            float tdx;
+            float tdy;
+            float tl;
+            float px;
+            float py;
+
+            for (i = 0; i < rcl_bd_threat_n; i++)
+            {
+                float dx = rcl_bd_threats[i].x - mx;
+                float dy = rcl_bd_threats[i].y - my;
+                float d2 = dx * dx + dy * dy;
+
+                if (d2 < nd)
+                {
+                    nd = d2;
+                    nearest = i;
+                }
+            }
+
+            tdx = rcl_bd_threats[nearest].x - mx;
+            tdy = rcl_bd_threats[nearest].y - my;
+            tl = sqrtf(tdx * tdx + tdy * tdy);
+
+            if (tl > 0.001f && (*ox * tdx + *oy * tdy) / tl > 0.90f)
+            {
+                px = -tdy / tl;
+                py = tdx / tl;
+
+                if (*ox * px + *oy * py >= 0.0f)
+                {
+                    *ox = px;
+                    *oy = py;
+                }
+                else
+                {
+                    *ox = -px;
+                    *oy = -py;
+                }
+            }
+        }
+
         rcl_bdc_idle++;
 
         if (rcl_ad_now_ms() - rcl_bdc_log_ms >= 1000)
@@ -1720,8 +1675,8 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     {
         rcl_bdc_log_ms = rcl_ad_now_ms();
 
-        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d esc=%d threat=%d aimed=%d score=%.0f imp=%.2f dir=%.2f,%.2f dodge=%llu",
-                     cand, (rcl_bdc_impacts[cand] > RCL_BDC_T_URGENT) ? 1 : 0, leastBad, keptPrev, escape,
+        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d ref=%d threat=%d aimed=%d score=%.0f imp=%.2f dir=%.2f,%.2f dodge=%llu",
+                     cand, (rcl_bdc_impacts[cand] > RCL_BDC_T_URGENT) ? 1 : 0, leastBad, keptPrev, refFromThreat,
                      rcl_bd_threat_n, rcl_bdc_sel_n, rcl_bdc_scores[cand], rcl_bdc_impacts[cand], *ox, *oy,
                      (unsigned long long)rcl_bdc_seen);
     }
@@ -1744,10 +1699,6 @@ static int rcl_ad_update(float mx, float my)
         return 0;
     }
     if (!rcl_ok(my, -100000000.0f, 100000000.0f))
-    {
-        return 0;
-    }
-    if (mx == 0.0f && my == 0.0f)
     {
         return 0;
     }
@@ -1777,15 +1728,11 @@ static int rcl_ad_update(float mx, float my)
 
     if (rcl_bd_threat_n == 0)
     {
-        rcl_ad_stop(mx, my);
-
         return 0;
     }
 
     if (!rcl_bd_danger(mx, my, myRadius))
     {
-        rcl_ad_stop(mx, my);
-
         return 0;
     }
 
@@ -1796,8 +1743,6 @@ static int rcl_ad_update(float mx, float my)
     ty = roundf(my + diry * RCL_AD_REACH);
 
     rcl_ad_send_move(tx, ty, mx, my);
-
-    rcl_ad_stopping = 0;
 
     return 1;
 }
@@ -1945,24 +1890,6 @@ void rcl_autododge(void)
 
         rcl_publish_own(objects[ownIndex].object, ownFrom);
 
-        if (rcl_own_gid > 0 && objects[ownIndex].gid != rcl_own_gid &&
-            !rcl_own_src_trusted(ownFrom))
-        {
-            rcl_ad_anchor_tries++;
-
-            if (objects[ownIndex].object != rcl_own_ptr_a ||
-                rcl_ad_anchor_tries < RCL_AD_ANCHOR_TRIES)
-            {
-                return;
-            }
-
-            rcl_own_gid = objects[ownIndex].gid;
-        }
-        else
-        {
-            rcl_ad_anchor_tries = 0;
-        }
-
         if (!rcl_own_logged)
         {
             rcl_own_logged = 1;
@@ -1978,16 +1905,6 @@ void rcl_autododge(void)
     rcl_death_signals((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY);
 
     rcl_alive(ownX, ownY);
-
-    if (rcl_life((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY))
-    {
-        rcl_own_gid = 0;
-        rcl_ad_anchor_tries = 0;
-        rcl_bdc_have_last = 0;
-        rcl_bdc_last_x = 0.0f;
-        rcl_bdc_last_y = 0.0f;
-        return;
-    }
 
     {
         int32_t projCount = 0;
