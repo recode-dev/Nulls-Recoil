@@ -29,7 +29,6 @@ int rcl_rad_off = -1;
 
 float rcl_own_r = 0.0f;
 
-#define RCL_AD_BODY_RADIUS 120.0f
 #define RCL_DODGE_CHAR_SPEED 1440.0f
 #define RCL_DODGE_SPEED_MIN 300
 #define RCL_DODGE_SPEED_MAX 8500
@@ -619,7 +618,7 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
             }
         }
         left = rcl_ad_life_left(p, spec, spd, nowMs);
-        if (left <= 10.0f)
+        if (left > 0.0f && left <= 10.0f)
         {
             continue;
         }
@@ -1336,20 +1335,17 @@ void rcl_autododge(void)
 
 float rcl_own_radius(void)
 {
-    if (rcl_own_r > 1.0f)
+    if (rcl_own_r <= 1.0f && rcl_own_elem && rcl_rad_off >= 0)
     {
-        float r = rcl_own_r;
-        if (r > RCL_OWN_RADIUS_MAX)
+        void *def = nullptr;
+        float r = 0.0f;
+        if (rcl_read_ptr(rcl_own_elem + (uintptr_t)RCL_ELEM_DEF_OFF, &def) && def &&
+            rcl_read_float((uintptr_t)def + (uintptr_t)rcl_rad_off, &r) && r > 1.0f && r < 600.0f)
         {
-            r = RCL_OWN_RADIUS_MAX;
+            rcl_own_r = r;
         }
-        if (r < RCL_OWN_RADIUS_MIN)
-        {
-            r = RCL_OWN_RADIUS_MIN;
-        }
-        return r;
     }
-    return RCL_AD_BODY_RADIUS;
+    return rcl_own_r > 1.0f ? rcl_own_r : 0.0f;
 }
 
 int rcl_proj_vel(const rcl_proj_t *p, float *vxOut, float *vyOut)
