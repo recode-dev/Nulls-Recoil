@@ -569,6 +569,8 @@ void rcl_run_autododge(void);
 #define RCL_SNAPSHOT_DELAY 1.2
 #define RCL_LOGS_ON 1
 
+#define RCL_OFFSETS_PROBE 1
+
 extern uintptr_t rcl_scene_object;
 
 int rcl_scene_live(void);

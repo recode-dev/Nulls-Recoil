@@ -105,6 +105,7 @@ typedef struct
 static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
 static int rcl_ad_mine_skipped = 0;
 static int rcl_ad_life_dead_logged = 0;
+static uint64_t rcl_ad_probe_ms = 0;
 static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
@@ -1652,6 +1653,15 @@ void rcl_autododge(void)
 
             rcl_own_logged = 1;
         }
+
+#if RCL_OFFSETS_PROBE
+        if (rcl_ad_now_ms() - rcl_ad_probe_ms >= 1000)
+        {
+            rcl_ad_probe_ms = rcl_ad_now_ms();
+
+            rcl_offsets_probe(objects[ownIndex].object);
+        }
+#endif
     }
 
     rcl_own_elem_2 = objects[ownIndex].object;
