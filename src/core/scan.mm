@@ -1678,13 +1678,79 @@ void rcl_tick_begin(void)
 
 uint64_t rcl_idle_start = 0;
 
+static const uint32_t rcl_slot_site_hash[34] = {
+    0x7744a9f0u, 0xd8ef9922u, 0x00000000u, 0x00000000u,
+    0x00000000u, 0x3888a7e0u, 0x00000000u, 0x00000000u,
+    0x00000000u, 0x00000000u, 0x00000000u, 0xe5674c94u,
+    0x00000000u, 0x6e078ab4u, 0x6e078ab4u, 0x00000000u,
+    0x4d5cf2adu, 0x04be5d31u, 0xa7ee96fau, 0xcfef7319u,
+    0x140cf28cu, 0x00000000u, 0x00000000u, 0x75481000u,
+    0x1a66e6cfu, 0x00000000u, 0x00000000u, 0x00000000u,
+    0xdba51345u, 0x1f08716fu, 0xd537a3b5u, 0x41120014u,
+    0x00000000u, 0x1d5fea33u,
+};
+
+static uint32_t rcl_site_hash(uintptr_t address)
+{
+    uint8_t bytes[16];
+    uint32_t hash = 0x811c9dc5u;
+    int i = 0;
+
+    if (!rcl_read_bytes(address, bytes, sizeof(bytes)))
+    {
+        return 0;
+    }
+
+    for (i = 0; i < (int)sizeof(bytes); i++)
+    {
+        hash ^= (uint32_t)bytes[i];
+        hash *= 0x01000193u;
+    }
+
+    return hash;
+}
+
 void rcl_slot_hooks_install(void)
 {
+    rcl_hook_t specs[34];
+    uint32_t word = 0;
+    int stale = 0;
+    int i = 0;
+
     if (!rcl_base)
     {
         return;
     }
-    rcl_hooks_install(rcl_base, rcl_slot_specs, 34, (void **)rcl_slot_orig);
+
+    memcpy(specs, rcl_slot_specs, sizeof(specs));
+
+    rcl_log_set_enabled(1);
+
+    for (i = 0; i < 34; i++)
+    {
+        if (!specs[i].rva || !rcl_slot_site_hash[i])
+        {
+            continue;
+        }
+
+        if (rcl_site_hash(rcl_base + specs[i].rva) == rcl_slot_site_hash[i])
+        {
+            continue;
+        }
+
+        word = 0;
+        rcl_read_bytes(rcl_base + specs[i].rva, &word, sizeof(word));
+        rcl_log_info("hook site stale idx=%d rva=%llx word=%08x", i,
+                     (unsigned long long)specs[i].rva, (unsigned)word);
+        specs[i].rva = 0;
+        stale++;
+    }
+
+    rcl_log_info("hook sites total=34 stale=%d", stale);
+    rcl_log_flush();
+    rcl_log_set_enabled(0);
+
+    rcl_hooks_install(rcl_base, specs, 34, (void **)rcl_slot_orig);
 }
 
 const int rcl_object_slots[3] = {2, 3, 4};
