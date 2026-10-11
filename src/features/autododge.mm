@@ -1904,7 +1904,13 @@ void rcl_autododge(void)
 
     rcl_death_signals((ownIndex >= 0 && ownIndex < usable) ? objects[ownIndex].object : 0, ownX, ownY);
 
-    rcl_alive(ownX, ownY);
+    if (rcl_dead)
+    {
+        rcl_bdc_have_last = 0;
+        rcl_bdc_last_x = 0.0f;
+        rcl_bdc_last_y = 0.0f;
+        return;
+    }
 
     {
         int32_t projCount = 0;
