@@ -1351,7 +1351,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         }
         else
         {
-            float tMax = -1.0f;
+            float tMax = rcl_bdc_impacts[cand];
             int lb = cand;
 
             leastBad = 1;
@@ -1359,7 +1359,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
 
             for (i = 0; i < count; i++)
             {
-                if (rcl_bdc_scores[i] <= fence && rcl_bdc_impacts[i] > tMax)
+                if (rcl_bdc_scores[i] <= fence && rcl_bdc_impacts[i] > tMax * 1.10f)
                 {
                     tMax = rcl_bdc_impacts[i];
                     lb = i;
