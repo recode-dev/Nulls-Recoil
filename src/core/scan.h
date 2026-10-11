@@ -410,7 +410,7 @@ int rcl_collect(uintptr_t manager, rcl_obj_t *out, int capacity);
 int rcl_small(long value);
 float rcl_as_float(uint32_t bits);
 void rcl_discriminate(uintptr_t manager);
-void rcl_probe(uintptr_t manager, uintptr_t mode);
+void rcl_probe(uintptr_t manager, uintptr_t mode, int verbose);
 uint64_t rcl_us(void);
 void rcl_paircal(void);
 
