@@ -32,6 +32,35 @@ static void rcl_log_default_sink(const rcl_log_entry_t *entries, int count)
     }
 }
 
+static void rcl_log_write_file(const rcl_log_entry_t *entries, int count)
+{
+    static FILE *file = nullptr;
+    static int written = 0;
+    int i = 0;
+    if (!file)
+    {
+        NSArray *paths =
+            NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *dir = paths.firstObject;
+        if (!dir)
+        {
+            return;
+        }
+        file = fopen([[dir stringByAppendingPathComponent:@RCL_LOG_FILE_NAME] UTF8String], "w");
+        if (!file)
+        {
+            return;
+        }
+    }
+    while (i < count && written < RCL_LOG_FILE_MAX)
+    {
+        fprintf(file, "[%s] %s\n", rcl_log_level_name(entries[i].level), entries[i].text);
+        written++;
+        i++;
+    }
+    fflush(file);
+}
+
 static dispatch_queue_t rcl_log_serial(void)
 {
     static dispatch_queue_t queue = nullptr;
@@ -80,6 +109,7 @@ void rcl_log_flush(void)
     {
         return;
     }
+    rcl_log_write_file(batch, count);
     sink(batch, count);
     free(batch);
 }
