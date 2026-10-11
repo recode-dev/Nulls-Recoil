@@ -1519,7 +1519,7 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     float rx = ix;
     float ry = iy;
     int hasRef = (ix != 0.0f || iy != 0.0f) ? 1 : 0;
-    int refFromThreat = 0;
+    int escape = 0;
     int count;
     int i;
     int best = 0;
@@ -1550,32 +1550,19 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         }
     }
 
-    if (rcl_bdc_sel_n == 0)
+    if (rcl_bdc_sel_n == 0 && rcl_bd_threat_n > 0)
     {
-        if (!hasRef && rcl_bd_threat_n > 0)
+        for (i = 0; i < rcl_bd_threat_n; i++)
         {
-            int nearest = 0;
-            float nd = RCL_BDC_FAR;
-
-            for (i = 0; i < rcl_bd_threat_n; i++)
-            {
-                float dx = rcl_bd_threats[i].x - mx;
-                float dy = rcl_bd_threats[i].y - my;
-                float d2 = dx * dx + dy * dy;
-
-                if (d2 < nd)
-                {
-                    nd = d2;
-                    nearest = i;
-                }
-            }
-
-            rx = mx - rcl_bd_threats[nearest].x;
-            ry = my - rcl_bd_threats[nearest].y;
-            hasRef = 1;
-            refFromThreat = 1;
+            rcl_bdc_sel[i] = i;
         }
 
+        rcl_bdc_sel_n = rcl_bd_threat_n;
+        escape = 1;
+    }
+
+    if (rcl_bdc_sel_n == 0)
+    {
         if (hasRef && (rx != 0.0f || ry != 0.0f))
         {
             float len = sqrtf(rx * rx + ry * ry);
@@ -1597,51 +1584,6 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         rcl_bdc_last_x = *ox;
         rcl_bdc_last_y = *oy;
         rcl_bdc_have_last = 1;
-        if (rcl_bd_threat_n > 0 && (*ox != 0.0f || *oy != 0.0f))
-        {
-            int nearest = 0;
-            float nd = RCL_BDC_FAR;
-            float tdx;
-            float tdy;
-            float tl;
-            float px;
-            float py;
-
-            for (i = 0; i < rcl_bd_threat_n; i++)
-            {
-                float dx = rcl_bd_threats[i].x - mx;
-                float dy = rcl_bd_threats[i].y - my;
-                float d2 = dx * dx + dy * dy;
-
-                if (d2 < nd)
-                {
-                    nd = d2;
-                    nearest = i;
-                }
-            }
-
-            tdx = rcl_bd_threats[nearest].x - mx;
-            tdy = rcl_bd_threats[nearest].y - my;
-            tl = sqrtf(tdx * tdx + tdy * tdy);
-
-            if (tl > 0.001f && (*ox * tdx + *oy * tdy) / tl > 0.90f)
-            {
-                px = -tdy / tl;
-                py = tdx / tl;
-
-                if (*ox * px + *oy * py >= 0.0f)
-                {
-                    *ox = px;
-                    *oy = py;
-                }
-                else
-                {
-                    *ox = -px;
-                    *oy = -py;
-                }
-            }
-        }
-
         rcl_bdc_idle++;
 
         if (rcl_ad_now_ms() - rcl_bdc_log_ms >= 1000)
@@ -1778,8 +1720,8 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     {
         rcl_bdc_log_ms = rcl_ad_now_ms();
 
-        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d ref=%d threat=%d aimed=%d score=%.0f imp=%.2f dir=%.2f,%.2f dodge=%llu",
-                     cand, (rcl_bdc_impacts[cand] > RCL_BDC_T_URGENT) ? 1 : 0, leastBad, keptPrev, refFromThreat,
+        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d esc=%d threat=%d aimed=%d score=%.0f imp=%.2f dir=%.2f,%.2f dodge=%llu",
+                     cand, (rcl_bdc_impacts[cand] > RCL_BDC_T_URGENT) ? 1 : 0, leastBad, keptPrev, escape,
                      rcl_bd_threat_n, rcl_bdc_sel_n, rcl_bdc_scores[cand], rcl_bdc_impacts[cand], *ox, *oy,
                      (unsigned long long)rcl_bdc_seen);
     }
