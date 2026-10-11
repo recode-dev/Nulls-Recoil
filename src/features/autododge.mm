@@ -76,9 +76,6 @@ static void rcl_dodge_speed_probe(void)
 #define RCL_AD_DIR_COUNT 64
 #define RCL_AD_SKIN 50.0f
 #define RCL_AD_REACH 600.0f
-#define RCL_AD_WALL_HIT 200000.0f
-#define RCL_AD_PROBE_COUNT 3
-#define RCL_AD_PROBE_STEP 0.35f
 #define RCL_AD_WALL_BODY 240.0f
 #define RCL_AD_TICK_MS 16.0f
 #define RCL_AD_TICK_MAX_MS 250.0f
@@ -110,21 +107,13 @@ static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
 static float rcl_ad_ring[RCL_AD_DIR_COUNT][2];
-static float rcl_ad_scores[RCL_AD_DIR_COUNT];
 static int rcl_ad_dir_built = 0;
 static int rcl_ad_hazard_n = 0;
 
 #define RCL_BD_SAFETY_MARGIN 28.0f
-#define RCL_BD_T_URGENT 0.9f
 #define RCL_BD_T_FIELD 1.8f
-#define RCL_BD_PERP_WEIGHT 2.4f
-#define RCL_BD_AWAY_WEIGHT 1.0f
-#define RCL_BD_INTENT_WEIGHT 1.2f
-#define RCL_BD_EXTRA_DIRS 16
 #define RCL_BD_INTENT_DEAD_SQ 900.0f
-#define RCL_BD_CAND_MAX 176
 #define RCL_BD_THREAT_MAX 160
-#define RCL_BD_FAR 1000000000000000000.0f
 
 typedef struct
 {
@@ -539,7 +528,6 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
                     base = 1.0f;
                 }
 
-
                 vx = ((float)p->x - (float)p->spawnX) / flown * base;
                 vy = ((float)p->y - (float)p->spawnY) / flown * base;
             }
@@ -635,25 +623,6 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
         }
     }
 }
-static float rcl_ad_wall_ahead(float mx, float my, float dx, float dy, float speed)
-{
-    float step = speed * RCL_AD_PROBE_STEP;
-    float raw = 0.0f;
-    int s;
-
-    for (s = 1; s <= RCL_AD_PROBE_COUNT; s++)
-    {
-        float px = mx + dx * step * (float)s;
-        float py = my + dy * step * (float)s;
-
-        if (rcl_wall_is_blocked_wide(px, py, RCL_AD_WALL_BODY, RCL_WALL_BLOCKS_MOVEMENT))
-        {
-            raw += RCL_AD_WALL_HIT * (float)(RCL_AD_PROBE_COUNT - s + 1);
-        }
-    }
-
-    return raw;
-}
 
 static void rcl_bd_norm(float x, float y, float *ox, float *oy)
 {
@@ -716,42 +685,6 @@ static void rcl_bd_build_threats(void)
     }
 }
 
-static int rcl_bd_urgent(int i, float mx, float my, float myR)
-{
-    const rcl_bd_threat_t *p = &rcl_bd_threats[i];
-    float dx = mx - p->x;
-    float dy = my - p->y;
-    float c1 = dx * p->vx + dy * p->vy;
-    float c2;
-    float tHit;
-    float r;
-    float ddx;
-    float ddy;
-
-    if (c1 <= 0.0f)
-    {
-        return 0;
-    }
-
-    c2 = p->vx * p->vx + p->vy * p->vy;
-    if (c2 <= 0.0f)
-    {
-        return 0;
-    }
-
-    tHit = c1 / c2;
-    if (tHit > RCL_BD_T_URGENT)
-    {
-        return 0;
-    }
-
-    r = myR + p->rad + RCL_BD_SAFETY_MARGIN;
-    ddx = mx - (p->x + p->vx * tHit);
-    ddy = my - (p->y + p->vy * tHit);
-
-    return (ddx * ddx + ddy * ddy <= r * r);
-}
-
 static void rcl_bd_intent(float *ix, float *iy)
 {
     uintptr_t ctrl = rcl_controller();
@@ -779,256 +712,6 @@ static void rcl_bd_intent(float *ix, float *iy)
     }
 
     rcl_bd_norm(rx, ry, ix, iy);
-}
-
-static float rcl_bd_threat(float dx_, float dy_, float mx, float my, float myR, float ix, float iy, float speed)
-{
-    float score = 0.0f;
-    int i;
-
-    for (i = 0; i < rcl_bd_threat_n; i++)
-    {
-        const rcl_bd_threat_t *p = &rcl_bd_threats[i];
-        float r = myR + p->rad + RCL_BD_SAFETY_MARGIN;
-        float vx = p->vx - dx_ * speed;
-        float vy = p->vy - dy_ * speed;
-        float dx = p->x - mx;
-        float dy = p->y - my;
-        float a = vx * vx + vy * vy;
-        float b = 2.0f * (dx * vx + dy * vy);
-        float c = dx * dx + dy * dy;
-        float minD2 = c;
-        float danger;
-
-        if (a > 0.000001f)
-        {
-            float tMin = -b / (2.0f * a);
-
-            if (tMin > 0.0f && tMin <= RCL_BD_T_FIELD)
-            {
-                minD2 = c + b * tMin + a * tMin * tMin;
-            }
-            else if (tMin > RCL_BD_T_FIELD)
-            {
-                minD2 = c + b * RCL_BD_T_FIELD + a * RCL_BD_T_FIELD * RCL_BD_T_FIELD;
-            }
-        }
-
-        danger = (minD2 < r * r) ? 2500.0f : (r * r) / (minD2 > 50.0f ? minD2 : 50.0f);
-
-        score += danger;
-    }
-
-    if (ix != 0.0f || iy != 0.0f)
-    {
-        score -= (dx_ * ix + dy_ * iy) * RCL_BD_INTENT_WEIGHT * 15.0f;
-    }
-
-    score += rcl_ad_wall_ahead(mx, my, dx_, dy_, speed);
-
-    return score;
-}
-
-static void rcl_bd_best(float mx, float my, float myR, float ix, float iy, float speed, float *ox, float *oy)
-{
-    float bestScore = RCL_BD_FAR;
-    float bx = ix;
-    float by = iy;
-    int i;
-
-    if (bx == 0.0f && by == 0.0f)
-    {
-        bx = rcl_ad_ring[0][0];
-        by = rcl_ad_ring[0][1];
-    }
-
-    for (i = 0; i < RCL_AD_DIR_COUNT; i++)
-    {
-        float s = rcl_bd_threat(rcl_ad_ring[i][0], rcl_ad_ring[i][1], mx, my, myR, ix, iy, speed);
-
-        rcl_ad_scores[i] = s;
-
-        if (s < bestScore)
-        {
-            bestScore = s;
-            bx = rcl_ad_ring[i][0];
-            by = rcl_ad_ring[i][1];
-        }
-    }
-
-    *ox = bx;
-    *oy = by;
-}
-
-static int rcl_bd_unsafe(float dx_, float dy_, float mx, float my, float myR, float speed)
-{
-    int i;
-
-    for (i = 0; i < rcl_bd_threat_n; i++)
-    {
-        const rcl_bd_threat_t *p = &rcl_bd_threats[i];
-        float r = myR + p->rad + RCL_BD_SAFETY_MARGIN;
-        float vx = p->vx - dx_ * speed;
-        float vy = p->vy - dy_ * speed;
-        float dx = p->x - mx;
-        float dy = p->y - my;
-        float a = vx * vx + vy * vy;
-        float b = 2.0f * (dx * vx + dy * vy);
-        float c = dx * dx + dy * dy - r * r;
-        float disc;
-        float t1;
-
-        if (c < 0.0f)
-        {
-            return 1;
-        }
-
-        if (a > 0.000001f)
-        {
-            disc = b * b - 4.0f * a * c;
-
-            if (disc >= 0.0f)
-            {
-                t1 = (-b - sqrtf(disc)) / (2.0f * a);
-
-                if (t1 > 0.0f && t1 <= RCL_BD_T_FIELD)
-                {
-                    return 1;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-static void rcl_bd_vo(float *dx_, float *dy_, float mx, float my, float myR, float ix, float iy, float speed)
-{
-    float bestX = *dx_;
-    float bestY = *dy_;
-    float bestScore = RCL_BD_FAR;
-    int found = 0;
-    int i;
-
-    if (!rcl_bd_unsafe(*dx_, *dy_, mx, my, myR, speed))
-    {
-        return;
-    }
-
-    for (i = 0; i < RCL_AD_DIR_COUNT; i++)
-    {
-        float s;
-
-        if (rcl_bd_unsafe(rcl_ad_ring[i][0], rcl_ad_ring[i][1], mx, my, myR, speed))
-        {
-            continue;
-        }
-
-        found = 1;
-        s = rcl_bd_threat(rcl_ad_ring[i][0], rcl_ad_ring[i][1], mx, my, myR, ix, iy, speed);
-
-        if (s < bestScore)
-        {
-            bestScore = s;
-            bestX = rcl_ad_ring[i][0];
-            bestY = rcl_ad_ring[i][1];
-        }
-    }
-
-    if (!found)
-    {
-        return;
-    }
-
-    *dx_ = bestX;
-    *dy_ = bestY;
-}
-
-static int rcl_bd_urgent_dir(float mx, float my, float myR, float ix, float iy, float *ox, float *oy, float speed)
-{
-    static float cand[RCL_BD_CAND_MAX][2];
-    int n = 0;
-    int urgent = 0;
-    int step;
-    float bestScore = RCL_BD_FAR;
-    int i;
-
-    for (i = 0; i < rcl_bd_threat_n; i++)
-    {
-        const rcl_bd_threat_t *p = &rcl_bd_threats[i];
-        float awayX;
-        float awayY;
-        float p1X;
-        float p1Y;
-        float p2X;
-        float p2Y;
-
-        if (!rcl_bd_urgent(i, mx, my, myR))
-        {
-            continue;
-        }
-
-        urgent++;
-        rcl_bd_norm(mx - p->x, my - p->y, &awayX, &awayY);
-        rcl_bd_norm(-p->vy, p->vx, &p1X, &p1Y);
-        rcl_bd_norm(p->vy, -p->vx, &p2X, &p2Y);
-
-        if (n < RCL_BD_CAND_MAX)
-        {
-            rcl_bd_norm(p1X * RCL_BD_PERP_WEIGHT + awayX * RCL_BD_AWAY_WEIGHT + ix * 0.6f,
-                        p1Y * RCL_BD_PERP_WEIGHT + awayY * RCL_BD_AWAY_WEIGHT + iy * 0.6f, &cand[n][0], &cand[n][1]);
-            n++;
-        }
-
-        if (n < RCL_BD_CAND_MAX)
-        {
-            rcl_bd_norm(p2X * RCL_BD_PERP_WEIGHT + awayX * RCL_BD_AWAY_WEIGHT + ix * 0.6f,
-                        p2Y * RCL_BD_PERP_WEIGHT + awayY * RCL_BD_AWAY_WEIGHT + iy * 0.6f, &cand[n][0], &cand[n][1]);
-            n++;
-        }
-    }
-
-    if (urgent == 0)
-    {
-        return 0;
-    }
-
-    step = RCL_AD_DIR_COUNT / RCL_BD_EXTRA_DIRS;
-
-    for (i = 0; i < RCL_BD_EXTRA_DIRS; i++)
-    {
-        int k = i * step;
-
-        if (n >= RCL_BD_CAND_MAX)
-        {
-            break;
-        }
-        if (k >= RCL_AD_DIR_COUNT)
-        {
-            break;
-        }
-
-        cand[n][0] = rcl_ad_ring[k][0];
-        cand[n][1] = rcl_ad_ring[k][1];
-        n++;
-    }
-
-    *ox = cand[0][0];
-    *oy = cand[0][1];
-
-    for (i = 0; i < n; i++)
-    {
-        float s = rcl_bd_threat(cand[i][0], cand[i][1], mx, my, myR, ix, iy, speed);
-
-        if (s < bestScore)
-        {
-            bestScore = s;
-            *ox = cand[i][0];
-            *oy = cand[i][1];
-        }
-    }
-
-    return 1;
 }
 
 static int rcl_bd_danger(float mx, float my, float myR)
@@ -1950,7 +1633,6 @@ void rcl_autododge(void)
     }
 }
 
-int rcl_dodge_probe_usable = 0;
 float rcl_own_radius(void)
 {
     if (rcl_own_r > 1.0f)
