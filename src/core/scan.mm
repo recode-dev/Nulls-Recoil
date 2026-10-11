@@ -2459,13 +2459,13 @@ void rcl_run_autododge(void)
     {
         return;
     }
-    if (rcl_in_move)
+    if (rcl_in_drive)
     {
         return;
     }
-    rcl_in_move = 1;
+    rcl_in_drive = 1;
     rcl_autododge();
-    rcl_in_move = 0;
+    rcl_in_drive = 0;
 }
 
 static uint64_t rcl_work_us = 0;
@@ -4227,7 +4227,7 @@ uintptr_t rcl_players_array = 0;
 
 int rcl_players_count = 0;
 
-uintptr_t rcl_own_elem_scan = 0;
+uintptr_t rcl_own_elem_2 = 0;
 
 int rcl_state_code = RCL_STATE_INIT;
 
@@ -4815,13 +4815,13 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
     {
         *fromOut = "none";
     }
-    if (!objects || usable <= 0 || !rcl_own_elem_scan)
+    if (!objects || usable <= 0 || !rcl_own_elem_2)
     {
         return 0;
     }
     for (i = 0; i < usable; i++)
     {
-        if (objects[i].object != rcl_own_elem_scan)
+        if (objects[i].object != rcl_own_elem_2)
         {
             continue;
         }
@@ -4847,6 +4847,8 @@ int rcl_own_latch(const rcl_obj_t *objects, int usable, int *indexOut, const cha
 }
 uintptr_t rcl_own_elem = 0;
 int32_t rcl_own_gid = 0;
+int rcl_no_source_passes = 0;
+int rcl_own_logged = 0;
 
 int rcl_own_by_min_gid(uintptr_t array, int32_t count, uintptr_t *elemOut, int32_t *gidOut)
 {
@@ -5034,8 +5036,8 @@ int rcl_own_scan(void)
     return found;
 }
 
-int rcl_resolve_own_fallback(const rcl_obj_t *objects, int usable, int *indexOut,
-                             const char **fromOut)
+int rcl_resolve_own_2(const rcl_obj_t *objects, int usable, int *indexOut,
+                      const char **fromOut)
 {
     if (indexOut)
     {
@@ -5092,7 +5094,7 @@ int rcl_resolve_own_fallback(const rcl_obj_t *objects, int usable, int *indexOut
 
 int rcl_own(int32_t *xOut, int32_t *yOut)
 {
-    uintptr_t own = rcl_own_elem_scan;
+    uintptr_t own = rcl_own_elem_2;
     if (!own)
     {
         own = rcl_own_elem;

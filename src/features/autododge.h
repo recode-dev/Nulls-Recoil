@@ -4,9 +4,11 @@
 #include "../core/offsets.h"
 #include "../helpers/dodge_kinds.h"
 
-extern __thread int rcl_in_move;
+extern __thread int rcl_in_drive;
 extern int32_t rcl_pl_mine[12];
+extern int rcl_active;
 
+extern int rcl_moving;
 extern int rcl_cand_now[3];
 extern int rcl_cand_seen;
 extern int32_t rcl_prev_x;
@@ -20,6 +22,7 @@ extern float rcl_own_r;
 
 int rcl_ok(float v, float lo, float hi);
 
+extern float rcl_rad_est;
 extern int rcl_cal_off_seen;
 extern int rcl_rad_off;
 
