@@ -1713,8 +1713,6 @@ static uint32_t rcl_site_hash(uintptr_t address)
 void rcl_slot_hooks_install(void)
 {
     rcl_hook_t specs[34];
-    uint32_t word = 0;
-    int stale = 0;
     int i = 0;
 
     if (!rcl_base)
@@ -1724,8 +1722,6 @@ void rcl_slot_hooks_install(void)
 
     memcpy(specs, rcl_slot_specs, sizeof(specs));
 
-    rcl_log_set_enabled(1);
-
     for (i = 0; i < 34; i++)
     {
         if (!specs[i].rva || !rcl_slot_site_hash[i])
@@ -1733,22 +1729,11 @@ void rcl_slot_hooks_install(void)
             continue;
         }
 
-        if (rcl_site_hash(rcl_base + specs[i].rva) == rcl_slot_site_hash[i])
+        if (rcl_site_hash(rcl_base + specs[i].rva) != rcl_slot_site_hash[i])
         {
-            continue;
+            specs[i].rva = 0;
         }
-
-        word = 0;
-        rcl_read_bytes(rcl_base + specs[i].rva, &word, sizeof(word));
-        rcl_log_info("hook site stale idx=%d rva=%llx word=%08x", i,
-                     (unsigned long long)specs[i].rva, (unsigned)word);
-        specs[i].rva = 0;
-        stale++;
     }
-
-    rcl_log_info("hook sites total=34 stale=%d", stale);
-    rcl_log_flush();
-    rcl_log_set_enabled(0);
 
     rcl_hooks_install(rcl_base, specs, 34, (void **)rcl_slot_orig);
 }
