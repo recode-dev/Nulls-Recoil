@@ -4598,10 +4598,6 @@ int rcl_life(uintptr_t ownElem, int32_t ownX, int32_t ownY)
     {
         deadNow = 1;
     }
-    if (deadNow && rcl_cand_now[0] == 0 && rcl_cand_now[1] == 1)
-    {
-        deadNow = 0;
-    }
     if (deadNow)
     {
         if (rcl_state_code != RCL_STATE_DEAD)
