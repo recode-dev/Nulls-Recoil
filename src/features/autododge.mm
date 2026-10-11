@@ -1914,6 +1914,14 @@ void rcl_autododge(void)
         return;
     }
 
+    {
+        int32_t projCount = 0;
+
+        if (rcl_manager_ptr)
+        {
+            rcl_read_int(rcl_manager_ptr + RCL_MGR_COUNT_OFF, &projCount);
+        }
+
         rcl_own_team_a = (int)ownTeam;
 
         if (ownIndex >= 0 && ownTeam >= 0 && ownTeam <= 15)
