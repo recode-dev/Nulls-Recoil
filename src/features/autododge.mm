@@ -104,6 +104,7 @@ typedef struct
 
 static rcl_ad_hazard_t rcl_ad_hazards[RCL_AD_HAZARD_MAX];
 static int rcl_ad_mine_skipped = 0;
+static int rcl_ad_life_dead_logged = 0;
 static int rcl_ad_team_logged_own = -2;
 static int rcl_ad_team_logged_armed = -1;
 static rcl_hazard_t rcl_ad_caps[RCL_AD_CAP_MAX];
@@ -1273,9 +1274,9 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
         {
             rcl_bdc_log_ms = rcl_ad_now_ms();
 
-            rcl_log_info("dodge idle threat=%d aimed=0 dir=%.2f,%.2f idle=%llu dodge=%llu",
+            rcl_log_info("dodge idle threat=%d aimed=0 dir=%.2f,%.2f idle=%llu dodge=%llu myR=%.0f speed=%.0f",
                          rcl_bd_threat_n, *ox, *oy, (unsigned long long)rcl_bdc_idle,
-                         (unsigned long long)rcl_bdc_seen);
+                         (unsigned long long)rcl_bdc_seen, myR, speed);
         }
 
         return;
@@ -1403,10 +1404,16 @@ static void rcl_bdc_pick(float mx, float my, float myR, float ix, float iy, floa
     {
         rcl_bdc_log_ms = rcl_ad_now_ms();
 
-        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d ref=%d threat=%d aimed=%d score=%.0f imp=%.2f dir=%.2f,%.2f dodge=%llu",
+        rcl_log_info("dodge seg=%d safe=%d least=%d keep=%d ref=%d threat=%d aimed=%d score=%.0f imp=%.2f "
+                     "dir=%.2f,%.2f dodge=%llu myR=%.0f speed=%.0f t0=%.0f,%.0f v0=%.0f,%.0f rad0=%.0f",
                      cand, (rcl_bdc_impacts[cand] > RCL_BDC_T_URGENT) ? 1 : 0, leastBad, keptPrev, refFromThreat,
                      rcl_bd_threat_n, rcl_bdc_sel_n, rcl_bdc_scores[cand], rcl_bdc_impacts[cand], *ox, *oy,
-                     (unsigned long long)rcl_bdc_seen);
+                     (unsigned long long)rcl_bdc_seen, myR, speed,
+                     (double)(rcl_bdc_sel_n > 0 ? rcl_bd_threats[rcl_bdc_sel[0]].x : 0.0f),
+                     (double)(rcl_bdc_sel_n > 0 ? rcl_bd_threats[rcl_bdc_sel[0]].y : 0.0f),
+                     (double)(rcl_bdc_sel_n > 0 ? rcl_bd_threats[rcl_bdc_sel[0]].vx : 0.0f),
+                     (double)(rcl_bdc_sel_n > 0 ? rcl_bd_threats[rcl_bdc_sel[0]].vy : 0.0f),
+                     (double)(rcl_bdc_sel_n > 0 ? rcl_bd_threats[rcl_bdc_sel[0]].rad : 0.0f));
     }
 }
 
@@ -1620,8 +1627,20 @@ void rcl_autododge(void)
 
         rcl_publish_own(objects[ownIndex].object, ownFrom);
 
-        if (!rcl_own_logged)
         {
+            static const char *loggedFrom = nullptr;
+            static int loggedGid = -1;
+            const char *from = ownFrom ? ownFrom : "?";
+
+            if (!loggedFrom || strcmp(loggedFrom, from) != 0 || loggedGid != rcl_own_gid)
+            {
+                loggedFrom = from;
+                loggedGid = rcl_own_gid;
+
+                rcl_log_info("own src=%s gid=%d team=%d idx=%d usable=%d", from, rcl_own_gid, (int)ownTeam,
+                             ownIndex, usable);
+            }
+
             rcl_own_logged = 1;
         }
     }
@@ -1673,7 +1692,24 @@ void rcl_autododge(void)
         {
             rcl_bdc_forget();
 
+            if (!rcl_ad_life_dead_logged)
+            {
+                rcl_ad_life_dead_logged = 1;
+
+                rcl_log_info("life dead=1 state=%d cand=%d,%d,%d slot=%d value=%d own=%#llx", rcl_state_code,
+                             rcl_cand_now[0], rcl_cand_now[1], rcl_cand_now[2], rcl_dead_slot, rcl_dead_value,
+                             (unsigned long long)objects[ownIndex].object);
+            }
+
             return;
+        }
+
+        if (rcl_ad_life_dead_logged)
+        {
+            rcl_ad_life_dead_logged = 0;
+
+            rcl_log_info("life dead=0 state=%d cand=%d,%d,%d slot=%d value=%d", rcl_state_code, rcl_cand_now[0],
+                         rcl_cand_now[1], rcl_cand_now[2], rcl_dead_slot, rcl_dead_value);
         }
 
         rcl_proj_scan(rcl_manager_ptr, projCount);
