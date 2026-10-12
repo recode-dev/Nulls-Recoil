@@ -1,5 +1,7 @@
 #include "../recoil.h"
 
+#include <malloc/malloc.h>
+
 #if RCL_CI_HASH_INNER_MASK_RVA && RCL_CI_HASH_OUTER_MASK_RVA && RCL_BM_HASH_ENABLED_OFF &&         \
     RCL_BM_HASH_KEY_OFF
 #define RCL_CI_SIGNING_ON 1
@@ -106,6 +108,15 @@ static uintptr_t rcl_callable_cached(uintptr_t *cache, uintptr_t rva)
     return *cache;
 }
 
+static int rcl_ptr_is_heap(const void *p)
+{
+    if (!p || ((uintptr_t)p & 7ULL))
+    {
+        return 0;
+    }
+    return malloc_zone_from_ptr((void *)p) != NULL;
+}
+
 int rcl_enqueue_skill(int x, int y, int type, void *skillData)
 {
     uintptr_t ctorFn = 0;
@@ -161,7 +172,11 @@ int rcl_enqueue_skill(int x, int y, int type, void *skillData)
     rcl_write_bytes((uintptr_t)msg + RCL_TYPE_OFF, &type, sizeof(type));
     rcl_write_bytes((uintptr_t)msg + RCL_X_OFF, &vx, sizeof(vx));
     rcl_write_bytes((uintptr_t)msg + RCL_Y_OFF, &vy, sizeof(vy));
-    if (skillData)
+    /* Only a real heap block may travel in the command. A pointer that libmalloc
+       does not own is not a game object: the queue would eventually release it and
+       libmalloc aborts with "pointer being freed was not allocated". The command
+       itself (type + x + y) is the shape the game's own builder 0x7a6338 sends. */
+    if (skillData && rcl_ptr_is_heap(skillData))
     {
         rcl_write_bytes((uintptr_t)msg + (uintptr_t)OFF_CLIENTINPUT_SKILLDATA, &skillData,
                         sizeof(skillData));
