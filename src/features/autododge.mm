@@ -122,6 +122,28 @@ typedef struct
     float rad;
 } rcl_bd_threat_t;
 
+static int rcl_ad_shielded(const rcl_proj_t *p, float mx, float my)
+{
+    /* A shot with a projectile-blocking tile between it and us cannot reach us, and it
+       must not produce a dodge whatever its shape is - thrower, blob, beam or slow.
+       The gate therefore sits ahead of the shape-specific logic below, not inside it. */
+    float dx = (float)p->x - mx;
+    float dy = (float)p->y - my;
+    float d = sqrtf(dx * dx + dy * dy);
+
+    if (d <= RCL_WALL_TRACE_BACKOFF)
+    {
+        return 0;
+    }
+
+    if (rcl_wall_is_blocked_at(mx, my, RCL_WALL_BLOCKS_PROJECTILES))
+    {
+        return 0;
+    }
+
+    return rcl_wall_trace(mx, my, dx / d, dy / d, d, RCL_WALL_BLOCKS_PROJECTILES) < d;
+}
+
 static rcl_bd_threat_t rcl_bd_threats[RCL_BD_THREAT_MAX];
 static int rcl_bd_threat_n = 0;
 
@@ -425,6 +447,11 @@ static void rcl_ad_collect(float mx, float my, float myRadius, uint64_t nowMs)
         }
 
         if (rcl_ad_my_shot(p, mx, my, bodyR))
+        {
+            continue;
+        }
+
+        if (rcl_ad_shielded(p, mx, my))
         {
             continue;
         }
