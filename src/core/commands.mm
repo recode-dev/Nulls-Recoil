@@ -172,10 +172,6 @@ int rcl_enqueue_skill(int x, int y, int type, void *skillData)
     rcl_write_bytes((uintptr_t)msg + RCL_TYPE_OFF, &type, sizeof(type));
     rcl_write_bytes((uintptr_t)msg + RCL_X_OFF, &vx, sizeof(vx));
     rcl_write_bytes((uintptr_t)msg + RCL_Y_OFF, &vy, sizeof(vy));
-    /* Only a real heap block may travel in the command. A pointer that libmalloc
-       does not own is not a game object: the queue would eventually release it and
-       libmalloc aborts with "pointer being freed was not allocated". The command
-       itself (type + x + y) is the shape the game's own builder 0x7a6338 sends. */
     if (skillData && rcl_ptr_is_heap(skillData))
     {
         rcl_write_bytes((uintptr_t)msg + (uintptr_t)OFF_CLIENTINPUT_SKILLDATA, &skillData,

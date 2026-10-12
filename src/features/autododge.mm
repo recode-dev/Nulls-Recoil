@@ -124,9 +124,6 @@ typedef struct
 
 static int rcl_ad_shielded(const rcl_proj_t *p, float mx, float my)
 {
-    /* A shot with a projectile-blocking tile between it and us cannot reach us, and it
-       must not produce a dodge whatever its shape is - thrower, blob, beam or slow.
-       The gate therefore sits ahead of the shape-specific logic below, not inside it. */
     float dx = (float)p->x - mx;
     float dy = (float)p->y - my;
     float d = sqrtf(dx * dx + dy * dy);
